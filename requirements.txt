@@ -4,4 +4,4 @@ aiofiles
 uvicorn[standard]
 uvloop
 orjson
-
+qrcode
