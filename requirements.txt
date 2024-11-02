@@ -2,5 +2,6 @@ fastapi
 python-multipart
 aiofiles
 uvicorn[standard]
+uvloop
 orjson
 

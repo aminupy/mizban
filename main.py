@@ -2,10 +2,13 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import orjson
+import sys
+
 
 from app.api.endpoints import files
 from app.core import settings
 from app.utils.folder_util import initialize_shared_folder
+from app.utils.start_util import start
 
 initialize_shared_folder(settings.UPLOAD_DIR)
 app = FastAPI()
@@ -19,4 +22,7 @@ app.mount("/storage", StaticFiles(directory=settings.UPLOAD_DIR), name="MizbanSh
 
 
 if __name__ == '__main__':
-    uvicorn.run(app, host="0.0.0.0", port=8000, loop='uvloop', http='httptools')
+    start()
+
+    async_loop = "uvloop" if sys.platform == 'linux' else "asyncio"
+    uvicorn.run(app, host="0.0.0.0", port=8000, loop=async_loop, http='httptools', log_level='critical')
