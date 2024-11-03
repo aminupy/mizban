@@ -23,7 +23,8 @@ async def lifespan(app) -> AsyncGenerator:
 
     # Open the web browser asynchronously to avoid blocking
     loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, webbrowser.open, url)
+    loop.call_later(1, webbrowser.open, url)
+    # await loop.run_in_executor(None, webbrowser.open, url)
 
     yield  # Control returns to the application
 
