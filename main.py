@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import orjson
@@ -12,6 +13,16 @@ from app.lifespan import lifespan
 
 initialize_shared_folder(settings.UPLOAD_DIR)
 app = FastAPI(lifespan=lifespan)
+
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Include routers for different parts of the API
 app.include_router(files.router, prefix="/api/files", tags=["Files"])

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, File, UploadFile, HTTPException, status
 from fastapi.responses import FileResponse, ORJSONResponse
+from starlette.responses import StreamingResponse
 
 from app.core import settings
 from app.services import save_file, get_all_files
@@ -8,7 +9,7 @@ from app.services import save_file, get_all_files
 router = APIRouter()
 
 # File upload endpoint
-@router.post("/upload/", response_class=ORJSONResponse)
+@router.post("/upload/", response_class=ORJSONResponse, status_code=status.HTTP_201_CREATED)
 async def upload_file(file: UploadFile = File(...)):
     await save_file(file)
 
@@ -18,7 +19,7 @@ async def upload_file(file: UploadFile = File(...)):
             }
 
 
-@router.get("/download/{filename}")
+@router.get("/download/{filename}", response_class=StreamingResponse, status_code=status.HTTP_200_OK)
 async def download_file(filename: str):
     from pathlib import Path
     import aiofiles
@@ -34,7 +35,7 @@ async def download_file(filename: str):
     return StreamingResponse(file_iterator(file_path), media_type='application/octet-stream')
 
 # List all files in the directory
-@router.get("/files/", response_class=ORJSONResponse)
+@router.get("/files/", response_class=ORJSONResponse, status_code=status.HTTP_200_OK)
 async def list_files():
     files = await get_all_files()
     return {
