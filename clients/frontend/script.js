@@ -1,4 +1,4 @@
-const BASE_URL = `http://192.168.105.177:8000`;
+// const BASE_URL = `http://localhost:8000`;
 const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
 const uploadButton = document.getElementById('uploadButton');
@@ -6,6 +6,7 @@ const fileListContainer = document.getElementById('fileList');
 const errorContainer = document.getElementById('errorContainer');
 
 const uploadedFiles = new Set();
+
 
 /**
  * Uploads a file to the server and manages the progress bar animation.
@@ -20,7 +21,7 @@ async function upload_file(file, progressBar) {
     // Start the infinite loading animation
     simulateProgress(progressBar, true);
 
-    const response = await fetch(`${BASE_URL}/api/files/upload/`, {
+    const response = await fetch('/api/files/upload/', {
       method: 'POST',
       body: formData
     });
@@ -59,40 +60,32 @@ async function upload_file(file, progressBar) {
 }
 
 /**
- * Downloads a file from the server.
+ * Initiates a file download without pre-fetching the file data.
  * @param {string} file_name - The name of the file to download.
  * @param {Event} event - The event object (optional).
  */
-async function download_file(file_name, event) {
+function download_file(file_name, event) {
   // If event is provided, prevent default behavior
   if (event) {
     event.preventDefault();
   }
 
-  try {
-    const response = await fetch(`${BASE_URL}/api/files/download/${encodeURIComponent(file_name)}`, {
-      method: 'GET'
-    });
+  // Construct the download URL
+  const url = `/api/files/download/${encodeURIComponent(file_name)}`;
 
-    if (!response.ok) {
-      throw new Error(`Failed to download file. Status: ${response.status}`);
-    }
+  // Create a temporary anchor element
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file_name; // Optional: Suggests a default file name
 
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+  // Append the link to the body (required for Firefox)
+  document.body.appendChild(link);
 
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = file_name;
-    document.body.appendChild(link);
-    link.click();
+  // Programmatically click the link to trigger the download
+  link.click();
 
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error downloading file:', error);
-    showError('Could not download the file.');
-  }
+  // Clean up by removing the link
+  document.body.removeChild(link);
 }
 
 /**
@@ -102,7 +95,7 @@ async function fetchExistingUploads() {
   dropZone.style.display = 'none';
 
   try {
-    const response = await fetch(`${BASE_URL}/api/files/files/`, {
+    const response = await fetch('/api/files/files/', {
       method: 'GET'
     });
 
@@ -229,6 +222,7 @@ function addFileToList(file) {
   fileDiv.addEventListener('click', (event) => {
     download_file(file.name, event);
   });
+
 
   fileDiv.appendChild(fileIcon);
   fileDiv.appendChild(fileName);

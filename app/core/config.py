@@ -6,6 +6,8 @@ import sys
 
 class Settings:
 
+    FRONTEND_DIR = 'clients/frontend/'
+
     @property
     def UPLOAD_DIR(self):
         # if getattr(sys, 'frozen', False):  # Running as a PyInstaller bundle
