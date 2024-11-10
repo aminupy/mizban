@@ -35,6 +35,6 @@ if __name__ == "__main__":
         port=8000,
         loop=async_loop,
         http="httptools",
-
+        log_level="critical"
     )
 
