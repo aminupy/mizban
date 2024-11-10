@@ -1,8 +1,8 @@
-import aiofiles
 import os
-import shutil
 
-from app.core.config import settings
+import aiofiles
+
+from app.core import settings
 
 
 async def save_file(file):
@@ -13,6 +13,12 @@ async def save_file(file):
             await buffer.write(content)
 
     return file_path
+
+
+async def stream_file(file_path):
+    async with aiofiles.open(file_path, mode="rb") as f:
+        while chunk := await f.read(1024 * 1024):  # Adjust chunk size as needed
+            yield chunk
 
 
 async def get_all_files():
