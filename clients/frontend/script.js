@@ -199,7 +199,7 @@ function addFileToList(file) {
   );
 
   const fileIcon = document.createElement('img');
-  fileIcon.src = './file_icon.svg';
+  fileIcon.src = 'icons/file_icon.svg';
   fileIcon.alt = 'File Icon';
   fileIcon.classList.add('w-12');
 
