@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -34,4 +33,4 @@ app.mount("/", StaticFiles(directory=settings.FRONTEND_DIR, html=True), name="fr
 
 if __name__ == '__main__':
     async_loop = "uvloop" if sys.platform == 'linux' else "asyncio"
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, loop=async_loop, http='httptools', log_level="critical")
+    uvicorn.run(app=app, host="0.0.0.0", port=8000, loop=async_loop, http='httptools', log_level="critical")

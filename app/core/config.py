@@ -5,19 +5,16 @@ from pathlib import Path
 import sys
 
 class Settings:
-
-    FRONTEND_DIR = 'clients/frontend/'
+    @property
+    def FRONTEND_DIR(self):
+        if getattr(sys, 'frozen', False):  # If bundled by PyInstaller
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, "clients/frontend")
 
     @property
     def UPLOAD_DIR(self):
-        # if getattr(sys, 'frozen', False):  # Running as a PyInstaller bundle
-        #     base_dir = os.path.dirname(sys.executable)
-        # else:  # Running as a regular script
-        #     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-        #
-        # return os.path.join(base_dir, "MizbanShared")
-        # Get the home directory
-
         try:
             home = Path.home()
             # Define the desktop path
