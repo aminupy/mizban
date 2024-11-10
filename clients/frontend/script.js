@@ -1,4 +1,3 @@
-// const BASE_URL = `http://localhost:8000`;
 const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
 const uploadButton = document.getElementById('uploadButton');
