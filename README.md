@@ -1,10 +1,11 @@
 <div align="center">
   <img src="clients/frontend/icons/logo.svg" alt="Mizban">
 </div>
-
+<br>
 <p align="center">
-Mizban is a lightweight, LAN-based file-sharing server designed for easy file sharing between devices on the same network.
+<em>Mizban is a lightweight, LAN-based file-sharing server designed for easy file sharing between devices on the same network.<em>
 </p>
+<br>
 
 
 
