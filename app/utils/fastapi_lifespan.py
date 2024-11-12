@@ -12,7 +12,7 @@ async def lifespan(app) -> AsyncGenerator:
 
     url = get_server_url()
 
-    print(f" Welcome to Mizban! 🚀 \n Your fast & light file-sharing server \n\n")
+    print(f" Welcome to Mizban 🚀 \n Your lightweight & fast file-sharing server \n\n")
     print(f" Mizban uses {settings.UPLOAD_DIR} as the shared folder. \n")
     print(f" For access to the server, please visit: {url}")
     print(f" Or scan the QR code below: \n\n")
