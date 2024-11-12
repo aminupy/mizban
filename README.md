@@ -3,7 +3,7 @@
 </div>
 <br>
 <p align="center">
-<em>Mizban is a lightweight, LAN-based file-sharing server designed for easy file sharing between devices on the same network.<em>
+<em>Mizban is a lightweight, LAN-based file-sharing server designed for easy file sharing between devices on the same network.</em>
 </p>
 <br>
 
