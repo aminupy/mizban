@@ -1,24 +1,38 @@
 import os
 import sys
-import logging
+
+from pathlib import Path
 
 
 class Settings:
-    _BASE_DIR = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    @property
+    def FRONTEND_DIR(self):
+        if getattr(sys, 'frozen', False):  # If bundled by PyInstaller
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, "clients/frontend")
 
     @property
     def UPLOAD_DIR(self):
-        upload_dir = os.path.abspath(os.path.join(self._BASE_DIR, "../../MizbanShared"))
-
         try:
-            # Ensure the directory exists
-            if not os.path.exists(upload_dir):
-                os.makedirs(upload_dir)
-        except OSError as e:
-            logging.error(f"Failed to create directory {upload_dir}: {e}")
-            raise e
+            home = Path.home()
+            # Define the desktop path
+            desktop = home / 'Desktop'
 
-        return upload_dir
+            # Check if Desktop exists; if not, handle accordingly
+            if not desktop.exists():
+                # On some systems, 'Desktop' might be localized or in a different location
+                # For Windows, you can use environment variables or other methods to find the Desktop path
+                if sys.platform.startswith('win'):
+                    import os
+                    desktop = Path(os.path.join(os.environ['USERPROFILE'], 'Desktop'))
+
+            return desktop / "MizbanShared"
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
 
 
 settings = Settings()

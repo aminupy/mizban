@@ -1,4 +1,6 @@
 fastapi
 python-multipart
 aiofiles
-'uvicorn[standard]'
+uvicorn[standard]
+orjson
+qrcode
