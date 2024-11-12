@@ -41,6 +41,8 @@
 ### Windows
 1. Download and install Mizban using the installer from the [latest release](https://github.com/yourusername/Mizban/releases).
 2. Alternatively, you can use the portable `.exe` file, also available on the [latest release page](https://github.com/yourusername/Mizban/releases).
+> **Note**: On the first run, make sure to allow Mizban through the Windows Firewall when prompted, so it can access your network for file sharing.
+
 
 ### Linux
 1. Download the `.AppImage` file from the [latest release](https://github.com/yourusername/Mizban/releases).
@@ -48,6 +50,9 @@
    ```bash
    chmod +x Mizban.AppImage
    ```
+3. Run the `.AppImage` by double-clicking it.
+4. After the first run, Mizban will be installed at `~/.local/share/Mizban`, and you can launch it from your application menu for quick access.
+
 ## Usage
 
 1. Run the Mizban executable. A folder named `MizbanShared` will be created on your **Desktop**. Any files you place in this folder can be accessed by all devices on the network.
@@ -80,4 +85,3 @@ You can also report bugs or suggest features via [GitHub issues](https://github.
 
 ## License
 Mizban is licensed under the MIT License. See the [LICENSE](https://github.com/yourusername/Mizban/blob/main/LICENSE) file for details.
-
