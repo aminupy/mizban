@@ -11,7 +11,12 @@
 <body class="bg-[#FAFAFA]">
   <header class="w-full p-6">
     <div class="flex items-center gap-4 container">
-      <img src="icons/logo.svg" alt="logo" class="w-logo">
+      <img src="icons/server_image.svg" alt="logo" class="w-14">
+      <div class="flex flex-col">
+        <b><h1 class="font-outfit text-2xl">Mizban</h1></b>
+        <p class="font-oswald oswald-light">LAN File Sharing Solution</p>
+
+      </div>
     </div>
   </header>
   
@@ -25,7 +30,7 @@
     <input type="file" id="fileInput" class="hidden w-full" multiple>
      <div class=" container rounded-lg bg-[#FFFFFF] shadow-lg relative h-[600px] md:h-[450px]">
        <div id="dropZone" class="hidden h-full w-full justify-center items-center border-2 text-2xl border-dashed border-gray-300 rounded-lg text-center text-gray-400 hover:bg-blue-50 transition-all duration-200 z-20 opacity-90">
-         Drag and drop files here or click the upload button above
+        Drag and drop files here, or click the upload button above.
        </div>
    
        <div id="fileList" class="mt-4 grid grid-cols-2 md:grid-cols-8 gap-4 overflow-y-auto relative z-10 max-h-[570px] md:max-h-[420px] p-2"></div>
