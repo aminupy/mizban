@@ -1,4 +1,6 @@
 import sys
+from functools import partial
+
 import uvicorn
 
 from fastapi import FastAPI
@@ -8,10 +10,11 @@ from fastapi.staticfiles import StaticFiles
 from app.api import files_router
 from app.core import settings
 from app.utils import lifespan, initialize_shared_folder
-
+from app.utils.network_util import choose_port
 
 initialize_shared_folder(settings.UPLOAD_DIR)
-app = FastAPI(lifespan=lifespan)
+port = choose_port()
+app = FastAPI(lifespan=partial(lifespan, port=port))
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,7 +35,7 @@ if __name__ == "__main__":
     uvicorn.run(
         app=app,
         host="0.0.0.0",
-        port=8000,
+        port=port,
         loop=async_loop,
         http="httptools",
         log_level="critical"

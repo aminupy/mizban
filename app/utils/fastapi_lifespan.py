@@ -3,14 +3,13 @@ import webbrowser
 from typing import AsyncGenerator
 
 from app.core import settings
-from app.utils.network_util import get_server_url
+from app.utils.network_util import get_server_url, choose_port
 from app.utils.qrcode_util import generate_qr_code
 
 
-async def lifespan(app) -> AsyncGenerator:
+async def lifespan(app, port) -> AsyncGenerator:
     # Startup actions
-
-    url = get_server_url()
+    url = get_server_url(port)
 
     print(f" Welcome to Mizban 🚀 \n Your lightweight & fast file-sharing server \n\n")
     print(f" Mizban uses {settings.UPLOAD_DIR} as the shared folder. \n")
