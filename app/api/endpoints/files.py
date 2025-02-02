@@ -41,7 +41,7 @@ async def download_file(filename: str):
 
 @router.get("/thumbnails/{filename}", response_class=StreamingResponse)
 async def get_thumbnail(filename: str):
-    thumb_path = settings.THUMBNAIL_DIR / filename
+    thumb_path = settings.THUMBNAIL_DIR / f"{filename}.jpg"
     if not thumb_path.exists():
         raise HTTPException(status_code=404, detail="Thumbnail not found")
 

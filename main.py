@@ -31,7 +31,6 @@ if __name__ == "__main__":
 
     from app.utils.thumbnail_generator import generate_thumbnail
 
-    asyncio.run(generate_thumbnail("/home/mohammadamin/Pictures/sea.jpg"))
     async_loop = "uvloop" if sys.platform == "linux" else "asyncio"
     uvicorn.run(
         app=app,
