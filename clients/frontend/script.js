@@ -159,13 +159,14 @@ dropZone.addEventListener('drop', (e) => {
 function handleFiles(files) {
   const newFiles = Array.from(files);
 
-  newFiles.forEach(file => {
+  newFiles.forEach(async file => {
     if (uploadedFiles.has(file.name)) {
       alert(`${file.name} already exists.`);
     } else {
       uploadedFiles.add(file.name);
-      const { progressBar } = addFileToList(file);
-      upload_file(file, progressBar); // Pass progress bar to upload_file
+      const { progressBar, fileIcon } = await addFileToList(file);
+      await upload_file(file, progressBar); // Pass progress bar to upload_file
+      await getThumbnail(file.name, fileIcon);
     }
   });
 }
@@ -175,15 +176,16 @@ function handleFiles(files) {
  * @param {Object} file - The file object containing name and upload status.
  * @returns {Object} - Contains the progressBar element.
  */
-function addFileToList(file) {
+async function addFileToList(file) {
   if (uploadedFiles.size > 0) {
     dropZone.style.display = 'none';
   }
 
   const fileDiv = document.createElement('div');
+  fileDiv.title = file.name;
   fileDiv.classList.add(
     'bg-gray-100',
-    'p-4',
+    'p-2',
     'rounded-lg',
     'text-center',
     'text-gray-700',
@@ -195,14 +197,12 @@ function addFileToList(file) {
     'flex-col',
     'items-center',
     'justify-center',
-    'gap-2'
   );
 
   const fileIcon = document.createElement('img');
   fileIcon.src = 'icons/file_icon.svg';
   fileIcon.alt = 'File Icon';
-  fileIcon.classList.add('w-12');
-
+  await getThumbnail(file.name, fileIcon);
   const fileName = document.createElement('p');
   fileName.classList.add('text-md', 'font-medium', 'truncate', 'max-w-full');
   fileName.textContent = file.name.length > 10 ? `${file.name.substr(0, 10)}...` : file.name;
@@ -228,7 +228,7 @@ function addFileToList(file) {
   fileDiv.appendChild(progressContainer);
   fileListContainer.appendChild(fileDiv);
 
-  return { progressBar };
+  return { progressBar, fileIcon };
 }
 
 /**
@@ -260,6 +260,26 @@ function showError(message) {
       errorContainer.removeChild(errorMsg);
     }
   }, 3000);
+}
+
+/**
+ * Gets thumbnail from api and if its succesful set it as imageElement given.
+ * @param {string} fileName - thumbnail file name
+ * @param {HTMLImageElement} fileIcon - imageElemnt to set thumbnail
+ */
+async function getThumbnail(fileName, fileIcon) {
+  const url = `/api/files/thumbnails/${encodeURIComponent(fileName)}`;
+
+  const options = {
+    method: "GET"
+  };
+
+  let response = await fetch(url, options);
+  if (response.status === 200) {
+    const imageBlob = await response.blob();
+    const imageObjectURL = URL.createObjectURL(imageBlob);
+    fileIcon.src = imageObjectURL;
+  };
 }
 
 // Initialize by fetching existing uploads
