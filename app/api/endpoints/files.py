@@ -1,10 +1,11 @@
 import mimetypes
 
-from fastapi import APIRouter, File, UploadFile, HTTPException, status
-from fastapi.responses import StreamingResponse, ORJSONResponse
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi.responses import ORJSONResponse, StreamingResponse
 
 from app.core import settings
-from app.services import save_file, stream_file, get_all_files
+from app.services import get_all_files, save_file, stream_file
+from app.utils.thumbnail_generator import generate_thumbnail
 
 router = APIRouter()
 
@@ -14,8 +15,8 @@ router = APIRouter()
     "/upload/", response_class=ORJSONResponse, status_code=status.HTTP_201_CREATED
 )
 async def upload_file(file: UploadFile = File(...)):
-    await save_file(file)
-
+    file_path = await save_file(file)
+    await generate_thumbnail(file_path)
     return {"filename": file.filename, "message": "File uploaded successfully"}
 
 
@@ -34,10 +35,17 @@ async def download_file(filename: str):
     return StreamingResponse(
         stream_file(file_path),
         media_type=mimetype or "application/octet-stream",
-        headers={
-            "Content-Length": str(file_path.stat().st_size)
-        }
+        headers={"Content-Length": str(file_path.stat().st_size)},
     )
+
+
+@router.get("/thumbnails/{filename}", response_class=StreamingResponse)
+async def get_thumbnail(filename: str):
+    thumb_path = settings.THUMBNAIL_DIR / filename
+    if not thumb_path.exists():
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
+
+    return StreamingResponse(stream_file(thumb_path), media_type="image/jpeg")
 
 
 # List all files in the directory
