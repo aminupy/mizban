@@ -7,7 +7,7 @@ from app.core.config import settings
 
 async def generate_thumbnail(file_path: str) -> Path | None:
     file_path = Path(file_path)
-    thumb_path = settings.THUMBNAIL_DIR / f"{file_path.stem}.jpg"
+    thumb_path = settings.THUMBNAIL_DIR / f"{file_path.name}.jpg"
     try:
         if file_path.suffix.lower() in [".jpg", ".jpeg", ".png", ".gif"]:
             img = Image.open(file_path)

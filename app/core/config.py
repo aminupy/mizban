@@ -4,6 +4,12 @@ from pathlib import Path
 
 
 class Settings:
+    APP_HOST: str = "0.0.0.0"
+    APP_PORT: int = 8001
+    ASYNC_LOOP: str = "uvloop" if sys.platform == "linux" else "asyncio"
+    HTTP_METHOD: str = "httptools"
+    LOG_LEVEL: str = "critical"
+
     @property
     def FRONTEND_DIR(self):
         if getattr(sys, "frozen", False):  # If bundled by PyInstaller

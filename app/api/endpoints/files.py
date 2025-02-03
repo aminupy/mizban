@@ -5,7 +5,7 @@ from fastapi.responses import ORJSONResponse, StreamingResponse
 
 from app.core import settings
 from app.services import get_all_files, save_file, stream_file
-from app.utils.thumbnail_generator import generate_thumbnail
+from app.utils import generate_thumbnail
 
 router = APIRouter()
 
@@ -15,8 +15,8 @@ router = APIRouter()
     "/upload/", response_class=ORJSONResponse, status_code=status.HTTP_201_CREATED
 )
 async def upload_file(file: UploadFile = File(...)):
-    file_path = await save_file(file)
-    await generate_thumbnail(file_path)
+    saved_file = await save_file(file)
+    await generate_thumbnail(saved_file)
     return {"filename": file.filename, "message": "File uploaded successfully"}
 
 
@@ -41,7 +41,7 @@ async def download_file(filename: str):
 
 @router.get("/thumbnails/{filename}", response_class=StreamingResponse)
 async def get_thumbnail(filename: str):
-    thumb_path = settings.THUMBNAIL_DIR / filename
+    thumb_path = settings.THUMBNAIL_DIR / f"{filename}.jpg"
     if not thumb_path.exists():
         raise HTTPException(status_code=404, detail="Thumbnail not found")
 
