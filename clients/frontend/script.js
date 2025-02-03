@@ -164,8 +164,8 @@ function handleFiles(files) {
       alert(`${file.name} already exists.`);
     } else {
       uploadedFiles.add(file.name);
-      const { progressBar, fileIcon } = await addFileToList(file);
-      await upload_file(file, progressBar); // Pass progress bar to upload_file
+      const { progressContainer, fileIcon } = await addFileToList(file);
+      await upload_file(file, progressContainer); // Pass progress bar to upload_file
       await getThumbnail(file.name, fileIcon);
     }
   });
@@ -207,11 +207,12 @@ async function addFileToList(file) {
   fileName.classList.add('text-md', 'font-medium', 'truncate', 'max-w-full');
   fileName.textContent = file.name.length > 10 ? `${file.name.substr(0, 10)}...` : file.name;
 
-  const progressContainer = document.createElement('div');
-  progressContainer.classList.add('w-full', 'rounded-full', 'overflow-hidden', 'h-2', 'mt-2');
-
+  let progressContainer = null;
   let progressBar = null;
+
   if (!file.uploaded) {
+    progressContainer = document.createElement('div');
+    progressContainer.classList.add('w-full', 'rounded-full', 'overflow-hidden', 'h-2', 'mt-2');
     progressBar = document.createElement('div');
     progressBar.classList.add('bg-blue-500', 'h-2', 'rounded-full', 'indeterminate-progress');
     progressContainer.appendChild(progressBar);
@@ -225,23 +226,24 @@ async function addFileToList(file) {
 
   fileDiv.appendChild(fileIcon);
   fileDiv.appendChild(fileName);
-  fileDiv.appendChild(progressContainer);
+  if (progressContainer)
+    fileDiv.appendChild(progressContainer);
   fileListContainer.appendChild(fileDiv);
 
-  return { progressBar, fileIcon };
+  return { fileIcon, progressContainer };
 }
 
 /**
  * Manages the progress bar animation.
- * @param {HTMLElement} progressBar - The progress bar element.
+ * @param {HTMLElement} progressContainer - The progress container element.
  * @param {boolean} show - Whether to show (start) or hide (stop) the animation.
  */
-function simulateProgress(progressBar, show) {
+function simulateProgress(progressContainer, show) {
+  progressBar=progressContainer.firstChild;
   if (show) {
     progressBar.classList.add('indeterminate-progress');
   } else {
-    progressBar.classList.remove('indeterminate-progress');
-    progressBar.classList.add('hidden'); // Hide the progress bar after completion or error
+    progressContainer.remove();
   }
 }
 
