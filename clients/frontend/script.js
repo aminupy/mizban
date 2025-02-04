@@ -5,6 +5,46 @@ const fileListContainer = document.getElementById('fileList');
 const errorContainer = document.getElementById('errorContainer');
 
 const uploadedFiles = new Set();
+const fileTypes = [
+  {
+    iconSrc: "icons/audio_file.svg",
+    extensions: [".mp3", ".flac", ".wav", ".wma", ".aac", ".ogg", ".midi"],
+  },
+  {
+    iconSrc: "icons/video_file.svg",
+    extensions: [".mp4", ".mkv", ".avi", ".mpeg", ".wmv"],
+  },
+  {
+    iconSrc: "icons/docs.svg",
+    extensions: [".odt", ".doc", ".docx", ".rtf"],
+  },
+  {
+    iconSrc: "icons/picture_as_pdf.svg",
+    extensions: [".pdf"],
+  },
+  {
+    iconSrc: "icons/folder_zip.svg",
+    extensions: [".zip", ".tar.gz", ".tar.xz", ".rar"],
+  },
+  {
+    iconSrc: "icons/text_snippet.svg",
+    extensions: [".txt", ".md"],
+  },
+  {
+    iconSrc: "icons/image.svg",
+    extensions: [
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".gif",
+      ".tif",
+      ".tiff",
+      ".webp",
+      ".bmp",
+      ".raw",
+    ],
+  },
+];
 
 
 /**
@@ -200,7 +240,21 @@ async function addFileToList(file) {
   );
 
   const fileIcon = document.createElement('img');
-  fileIcon.src = 'icons/file_icon.svg';
+  fileIcon.src = "icons/draft.svg";
+  const fileNameLower = file.name.toLowerCase();
+  for (let fileType of fileTypes) {
+    let found = false;
+    for (let extension of fileType.extensions) {
+      if (fileNameLower.endsWith(extension)) {
+        found = true;
+        break;
+      }
+    }
+    if (found) {
+      fileIcon.src = fileType.iconSrc;
+      break;
+    }
+  }
   fileIcon.alt = 'File Icon';
   fileIcon.classList.add('file-icon'); // Apply the fixed size class
   await getThumbnail(file.name, fileIcon);
