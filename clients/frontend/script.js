@@ -202,6 +202,7 @@ async function addFileToList(file) {
   const fileIcon = document.createElement('img');
   fileIcon.src = 'icons/file_icon.svg';
   fileIcon.alt = 'File Icon';
+  fileIcon.classList.add('file-icon'); // Apply the fixed size class
   await getThumbnail(file.name, fileIcon);
   const fileName = document.createElement('p');
   fileName.classList.add('text-md', 'font-medium', 'truncate', 'max-w-full');
@@ -239,7 +240,7 @@ async function addFileToList(file) {
  * @param {boolean} show - Whether to show (start) or hide (stop) the animation.
  */
 function simulateProgress(progressContainer, show) {
-  progressBar=progressContainer.firstChild;
+  progressBar = progressContainer.firstChild;
   if (show) {
     progressBar.classList.add('indeterminate-progress');
   } else {

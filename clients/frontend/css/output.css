@@ -624,6 +624,11 @@ video {
   display: none;
 }
 
+.file-icon {
+  max-height: 4rem;  /* Set a fixed width */
+  object-fit: contain; /* Ensures the entire icon fits within the dimensions */
+}
+
 .h-2 {
   height: 0.5rem;
 }
