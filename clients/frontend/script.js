@@ -5,6 +5,46 @@ const fileListContainer = document.getElementById('fileList');
 const errorContainer = document.getElementById('errorContainer');
 
 const uploadedFiles = new Set();
+const fileTypes = [
+  {
+    iconSrc: "icons/audio_file.svg",
+    extensions: [".mp3", ".flac", ".wav", ".wma", ".aac", ".ogg", ".midi"],
+  },
+  {
+    iconSrc: "icons/video_file.svg",
+    extensions: [".mp4", ".mkv", ".avi", ".mpeg", ".wmv"],
+  },
+  {
+    iconSrc: "icons/docs.svg",
+    extensions: [".odt", ".doc", ".docx", ".rtf"],
+  },
+  {
+    iconSrc: "icons/picture_as_pdf.svg",
+    extensions: [".pdf"],
+  },
+  {
+    iconSrc: "icons/folder_zip.svg",
+    extensions: [".zip", ".tar.gz", ".tar.xz", ".rar"],
+  },
+  {
+    iconSrc: "icons/text_snippet.svg",
+    extensions: [".txt", ".md"],
+  },
+  {
+    iconSrc: "icons/image.svg",
+    extensions: [
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".gif",
+      ".tif",
+      ".tiff",
+      ".webp",
+      ".bmp",
+      ".raw",
+    ],
+  },
+];
 
 
 /**
@@ -159,13 +199,14 @@ dropZone.addEventListener('drop', (e) => {
 function handleFiles(files) {
   const newFiles = Array.from(files);
 
-  newFiles.forEach(file => {
+  newFiles.forEach(async file => {
     if (uploadedFiles.has(file.name)) {
       alert(`${file.name} already exists.`);
     } else {
       uploadedFiles.add(file.name);
-      const { progressBar } = addFileToList(file);
-      upload_file(file, progressBar); // Pass progress bar to upload_file
+      const { progressContainer, fileIcon } = await addFileToList(file);
+      await upload_file(file, progressContainer); // Pass progress bar to upload_file
+      await getThumbnail(file.name, fileIcon);
     }
   });
 }
@@ -175,15 +216,16 @@ function handleFiles(files) {
  * @param {Object} file - The file object containing name and upload status.
  * @returns {Object} - Contains the progressBar element.
  */
-function addFileToList(file) {
+async function addFileToList(file) {
   if (uploadedFiles.size > 0) {
     dropZone.style.display = 'none';
   }
 
   const fileDiv = document.createElement('div');
+  fileDiv.title = file.name;
   fileDiv.classList.add(
     'bg-gray-100',
-    'p-4',
+    'p-2',
     'rounded-lg',
     'text-center',
     'text-gray-700',
@@ -195,23 +237,37 @@ function addFileToList(file) {
     'flex-col',
     'items-center',
     'justify-center',
-    'gap-2'
   );
 
   const fileIcon = document.createElement('img');
-  fileIcon.src = 'icons/file_icon.svg';
+  fileIcon.src = "icons/draft.svg";
+  const fileNameLower = file.name.toLowerCase();
+  for (let fileType of fileTypes) {
+    let found = false;
+    for (let extension of fileType.extensions) {
+      if (fileNameLower.endsWith(extension)) {
+        found = true;
+        break;
+      }
+    }
+    if (found) {
+      fileIcon.src = fileType.iconSrc;
+      break;
+    }
+  }
   fileIcon.alt = 'File Icon';
-  fileIcon.classList.add('w-12');
-
+  fileIcon.classList.add('file-icon'); // Apply the fixed size class
+  await getThumbnail(file.name, fileIcon);
   const fileName = document.createElement('p');
   fileName.classList.add('text-md', 'font-medium', 'truncate', 'max-w-full');
   fileName.textContent = file.name.length > 10 ? `${file.name.substr(0, 10)}...` : file.name;
 
-  const progressContainer = document.createElement('div');
-  progressContainer.classList.add('w-full', 'rounded-full', 'overflow-hidden', 'h-2', 'mt-2');
-
+  let progressContainer = null;
   let progressBar = null;
+
   if (!file.uploaded) {
+    progressContainer = document.createElement('div');
+    progressContainer.classList.add('w-full', 'rounded-full', 'overflow-hidden', 'h-2', 'mt-2');
     progressBar = document.createElement('div');
     progressBar.classList.add('bg-blue-500', 'h-2', 'rounded-full', 'indeterminate-progress');
     progressContainer.appendChild(progressBar);
@@ -225,23 +281,24 @@ function addFileToList(file) {
 
   fileDiv.appendChild(fileIcon);
   fileDiv.appendChild(fileName);
-  fileDiv.appendChild(progressContainer);
+  if (progressContainer)
+    fileDiv.appendChild(progressContainer);
   fileListContainer.appendChild(fileDiv);
 
-  return { progressBar };
+  return { fileIcon, progressContainer };
 }
 
 /**
  * Manages the progress bar animation.
- * @param {HTMLElement} progressBar - The progress bar element.
+ * @param {HTMLElement} progressContainer - The progress container element.
  * @param {boolean} show - Whether to show (start) or hide (stop) the animation.
  */
-function simulateProgress(progressBar, show) {
+function simulateProgress(progressContainer, show) {
+  progressBar = progressContainer.firstChild;
   if (show) {
     progressBar.classList.add('indeterminate-progress');
   } else {
-    progressBar.classList.remove('indeterminate-progress');
-    progressBar.classList.add('hidden'); // Hide the progress bar after completion or error
+    progressContainer.remove();
   }
 }
 
@@ -260,6 +317,26 @@ function showError(message) {
       errorContainer.removeChild(errorMsg);
     }
   }, 3000);
+}
+
+/**
+ * Gets thumbnail from api and if its succesful set it as imageElement given.
+ * @param {string} fileName - thumbnail file name
+ * @param {HTMLImageElement} fileIcon - imageElemnt to set thumbnail
+ */
+async function getThumbnail(fileName, fileIcon) {
+  const url = `/api/files/thumbnails/${encodeURIComponent(fileName)}`;
+
+  const options = {
+    method: "GET"
+  };
+
+  let response = await fetch(url, options);
+  if (response.status === 200) {
+    const imageBlob = await response.blob();
+    const imageObjectURL = URL.createObjectURL(imageBlob);
+    fileIcon.src = imageObjectURL;
+  };
 }
 
 // Initialize by fetching existing uploads

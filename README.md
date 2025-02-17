@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="clients/frontend/icons/logo.svg" alt="Mizban">
+  <img src="clients/frontend/icons/readme_logo.svg" alt="Mizban">
 </div>
 <br>
 <p align="center">
@@ -39,13 +39,13 @@
 ## Installation
 
 ### Windows
-1. Download and install Mizban using the installer from the [latest release](https://github.com/yourusername/Mizban/releases).
-2. Alternatively, you can use the portable `.exe` file, also available on the [latest release page](https://github.com/yourusername/Mizban/releases).
+1. Download and install Mizban using the installer from the [latest release](https://github.com/aminupy/mizban/releases).
+2. Alternatively, you can use the portable `.exe` file, also available on the [latest release page](https://github.com/aminupy/mizban/releases).
 > **Note**: On the first run, make sure to allow Mizban through the Windows Firewall when prompted, so it can access your network for file sharing.
 
 
 ### Linux
-1. Download the `.AppImage` file from the [latest release](https://github.com/yourusername/Mizban/releases).
+1. Download the `.AppImage` file from the [latest release](https://github.com/aminupy/mizban/releases).
 2. Make the file executable:
    ```bash
    chmod +x Mizban.AppImage
@@ -80,8 +80,8 @@ We welcome contributions! If you're interested in the roadmap features or have o
 4. Push to the branch (`git push origin feature/NewFeature`).
 5. Open a pull request.
 
-You can also report bugs or suggest features via [GitHub issues](https://github.com/yourusername/Mizban/issues).
+You can also report bugs or suggest features via [GitHub issues](https://github.com/aminupy/mizban/issues).
 
 
 ## License
-Mizban is licensed under the MIT License. See the [LICENSE](https://github.com/yourusername/Mizban/blob/main/LICENSE) file for details.
+Mizban is licensed under the MIT License. See the [LICENSE](https://github.com/aminupy/mizban/blob/main/LICENSE) file for details.

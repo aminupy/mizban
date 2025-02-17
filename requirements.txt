@@ -4,3 +4,4 @@ aiofiles
 uvicorn[standard]
 orjson
 qrcode
+pillow

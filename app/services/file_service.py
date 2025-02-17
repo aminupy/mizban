@@ -22,5 +22,9 @@ async def stream_file(file_path):
 
 
 async def get_all_files():
-    files = os.listdir(settings.UPLOAD_DIR)
+    files = [
+        file
+        for file in os.listdir(settings.UPLOAD_DIR)
+        if os.path.isfile(os.path.join(settings.UPLOAD_DIR, file))
+    ]
     return files
