@@ -1,7 +1,7 @@
 import mimetypes
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
-from fastapi.responses import ORJSONResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 
 from app.core import settings
 from app.services import get_all_files, save_file, stream_file
@@ -11,9 +11,7 @@ router = APIRouter()
 
 
 # File upload endpoint
-@router.post(
-    "/upload/", response_class=ORJSONResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/upload/", status_code=status.HTTP_201_CREATED)
 async def upload_file(file: UploadFile = File(...)):
     saved_file = await save_file(file)
     await generate_thumbnail(saved_file)
@@ -49,7 +47,7 @@ async def get_thumbnail(filename: str):
 
 
 # List all files in the directory
-@router.get("/files/", response_class=ORJSONResponse, status_code=status.HTTP_200_OK)
+@router.get("/files/", status_code=status.HTTP_200_OK)
 async def list_files():
     files = await get_all_files()
     return {"files": files}

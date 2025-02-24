@@ -27,8 +27,6 @@ class Settings:
 
             # Check if Desktop exists; if not, handle accordingly
             if not desktop.exists():
-                # On some systems, 'Desktop' might be localized or in a different location
-                # For Windows, you can use environment variables or other methods to find the Desktop path
                 if sys.platform.startswith("win"):
                     import os
 
