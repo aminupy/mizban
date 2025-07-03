@@ -1,7 +1,0 @@
-fastapi
-python-multipart
-aiofiles
-uvicorn[standard]
-orjson
-qrcode
-pillow

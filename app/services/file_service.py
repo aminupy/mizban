@@ -17,7 +17,7 @@ async def save_file(file):
 
 async def stream_file(file_path):
     async with aiofiles.open(file_path, mode="rb") as f:
-        while chunk := await f.read(1024 * 1024):  # Adjust chunk size as needed
+        while chunk := await f.read(1024 * 1024):
             yield chunk
 
 
