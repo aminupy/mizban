@@ -60,7 +60,7 @@ async function upload_file(file, progressBar) {
     // Start the infinite loading animation
     simulateProgress(progressBar, true);
 
-    const response = await fetch('/api/files/upload/', {
+    const response = await fetch('/upload/', {
       method: 'POST',
       body: formData
     });
@@ -110,7 +110,7 @@ function download_file(file_name, event) {
   }
 
   // Construct the download URL
-  const url = `/api/files/download/${encodeURIComponent(file_name)}`;
+  const url = `/download/${encodeURIComponent(file_name)}`;
 
   // Create a temporary anchor element
   const link = document.createElement('a');
@@ -134,7 +134,7 @@ async function fetchExistingUploads() {
   dropZone.style.display = 'none';
 
   try {
-    const response = await fetch('/api/files/files/', {
+    const response = await fetch('/files/', {
       method: 'GET'
     });
 
@@ -325,7 +325,7 @@ function showError(message) {
  * @param {HTMLImageElement} fileIcon - imageElemnt to set thumbnail
  */
 async function getThumbnail(fileName, fileIcon) {
-  const url = `/api/files/thumbnails/${encodeURIComponent(fileName)}`;
+  const url = `/thumbnails/${encodeURIComponent(fileName)}`;
 
   const options = {
     method: "GET"
