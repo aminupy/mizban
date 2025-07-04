@@ -12,7 +12,7 @@ const fileTypes = [
   },
   {
     iconSrc: "icons/video_file.svg",
-    extensions: [".mp4", ".mkv", ".avi", ".mpeg", ".wmv"],
+    extensions: [".mp4", ".mkv", ".avi", ".mpeg", ".wmv", ".mov"],
   },
   {
     iconSrc: "icons/docs.svg",

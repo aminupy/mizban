@@ -1,24 +1,24 @@
-import os
-import sys
 import json
-import socket
 import logging
-import threading
 import mimetypes
-
+import os
+import socket
+import sys
 from http import HTTPStatus
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 # Optional dependencies
 try:
     from PIL import Image
+
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
 
 try:
     import qrcode
+
     QR_AVAILABLE = True
 except ImportError:
     QR_AVAILABLE = False
@@ -43,13 +43,14 @@ for d in (UPLOAD_DIR, THUMBNAIL_DIR):
 # ─── Logging ─────────────────────────────────────────────────────────────────
 
 logging.basicConfig(
-    level=logging.ERROR,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger("mizban")
 
 # ─── Utilities ───────────────────────────────────────────────────────────────
+
 
 def get_server_url() -> str:
     """Determine local LAN IP + port for sharing."""
@@ -62,6 +63,7 @@ def get_server_url() -> str:
     finally:
         sock.close()
     return f"http://{ip}:{PORT}/"
+
 
 def generate_thumbnail(src_path: Path) -> None:
     """Generate a 200x200 JPEG thumbnail if Pillow is installed."""
@@ -76,6 +78,7 @@ def generate_thumbnail(src_path: Path) -> None:
                 logger.debug(f"Thumbnail saved: {thumb}")
     except Exception as e:
         logger.warning(f"Thumbnail failed for {src_path}: {e}")
+
 
 def print_qr_code(data: str) -> None:
     """Prints ASCII QR code in terminal."""
@@ -92,15 +95,17 @@ def print_qr_code(data: str) -> None:
     qr.make(fit=True)
     qr.print_ascii(invert=True)
 
+
 # ─── HTTP Handler ────────────────────────────────────────────────────────────
+
 
 class MizbanHandler(SimpleHTTPRequestHandler):
     """Serves APIs and static files from frontend."""
-    
+
     def do_POST(self):
         if self.path != "/upload/":
             return self.send_error(HTTPStatus.NOT_FOUND)
-        
+
         content_type = self.headers.get("Content-Type", "")
         if "multipart/form-data" not in content_type:
             return self.send_error(HTTPStatus.BAD_REQUEST, "Invalid Content-Type")
@@ -112,7 +117,7 @@ class MizbanHandler(SimpleHTTPRequestHandler):
         delimiter = f"--{boundary}".encode()
         parts = data.split(delimiter)
         for part in parts:
-            if b'Content-Disposition' in part:
+            if b"Content-Disposition" in part:
                 header, body = part.split(b"\r\n\r\n", 1)
                 body = body.rstrip(b"\r\n--")
                 for line in header.decode().split("\r\n"):
@@ -130,7 +135,7 @@ class MizbanHandler(SimpleHTTPRequestHandler):
                 response = {"filename": filename, "message": "Uploaded"}
                 self._send_json(response, HTTPStatus.CREATED)
                 return
-        
+
         self.send_error(HTTPStatus.BAD_REQUEST, "No file found")
 
     def do_GET(self):
@@ -171,15 +176,16 @@ class MizbanHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         logger.info("%s - %s" % (self.client_address[0], format % args))
 
+
 # ─── Server Startup ─────────────────────────────────────────────────────────
+
 
 def main():
     url = get_server_url()
     print("\n🚀  Mizban — LAN File Sharing Server\n")
     print(f"📂  Shared folder : {UPLOAD_DIR}")
     print(f"🌐  Access URL    : {url}")
-    print( "📱  QR code        : Scan below to open in your mobile browser\n")
-
+    print("📱  QR code       : Scan below to open in your mobile browser\n")
 
     print_qr_code(url)
 
@@ -191,6 +197,7 @@ def main():
         logger.info("Shutting down...")
     finally:
         server.server_close()
+
 
 if __name__ == "__main__":
     main()
