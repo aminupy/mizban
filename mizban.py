@@ -4,6 +4,7 @@ import mimetypes
 import os
 import socket
 import sys
+import urllib.parse
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -140,7 +141,7 @@ class MizbanHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.startswith("/download/"):
-            name = self.path.removeprefix("/download/")
+            name = urllib.parse.unquote(self.path.removeprefix("/download/"))
             return self._serve_file(UPLOAD_DIR / name)
 
         if self.path.startswith("/thumbnails/"):
@@ -166,7 +167,7 @@ class MizbanHandler(SimpleHTTPRequestHandler):
             self.wfile.write(f.read())
 
     def _send_json(self, obj, status=HTTPStatus.OK):
-        data = json.dumps(obj).encode()
+        data = json.dumps(obj, ensure_ascii=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
