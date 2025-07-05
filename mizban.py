@@ -42,7 +42,7 @@ for d in (UPLOAD_DIR, THUMBNAIL_DIR):
 # ─── Logging ─────────────────────────────────────────────────────────────────
 
 logging.basicConfig(
-    level=logging.ERROR,
+    level=logging.CRITICAL,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%H:%M:%S",
 )
@@ -69,9 +69,10 @@ def generate_thumbnail(src_path: Path) -> None:
     if not PIL_AVAILABLE:
         return
     try:
-        if src_path.suffix.lower() in (".jpg", ".jpeg", ".png", ".gif"):
+        if src_path.suffix.lower() in (".jpg", ".jpeg", ".png", ".gif", ".svg"):
             thumb = THUMBNAIL_DIR / f"{src_path.name}.jpg"
             with Image.open(src_path) as img:
+                img = img.convert('RGB')
                 img.thumbnail((200, 200))
                 img.save(thumb, "JPEG")
                 logger.debug(f"Thumbnail saved: {thumb}")
@@ -96,6 +97,7 @@ def print_qr_code(data: str) -> None:
 
 
 # ─── HTTP Handler ────────────────────────────────────────────────────────────
+
 
 class MizbanHandler(SimpleHTTPRequestHandler):
     """Serves APIs and static files from frontend."""
@@ -176,6 +178,7 @@ class MizbanHandler(SimpleHTTPRequestHandler):
 
 
 # ─── Server Startup ─────────────────────────────────────────────────────────
+
 
 def main():
     url = get_server_url()
