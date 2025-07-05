@@ -4,7 +4,9 @@ import mimetypes
 import os
 import socket
 import sys
+import threading
 import urllib.parse
+import gui
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -178,14 +180,6 @@ class MizbanHandler(SimpleHTTPRequestHandler):
 # ─── Server Startup ─────────────────────────────────────────────────────────
 
 def main():
-    url = get_server_url()
-    print("\n🚀  Mizban — LAN File Sharing Server\n")
-    print(f"📂  Shared folder : {UPLOAD_DIR}")
-    print(f"🌐  Access URL    : {url}")
-    print("📱  QR code       : Scan below to open in your mobile browser\n")
-
-    print_qr_code(url)
-
     os.chdir(FRONTEND_DIR)  # Serve frontend files
     server = ThreadingHTTPServer((HOST, PORT), MizbanHandler)
     try:
@@ -197,4 +191,5 @@ def main():
 
 
 if __name__ == "__main__":
+    threading.Thread(target=gui.start_gui, daemon=True).start()
     main()
