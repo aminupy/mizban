@@ -12,14 +12,12 @@ from pathlib import Path
 # Optional dependencies
 try:
     from PIL import Image
-
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
 
 try:
     import qrcode
-
     QR_AVAILABLE = True
 except ImportError:
     QR_AVAILABLE = False
@@ -44,7 +42,7 @@ for d in (UPLOAD_DIR, THUMBNAIL_DIR):
 # ─── Logging ─────────────────────────────────────────────────────────────────
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.ERROR,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%H:%M:%S",
 )
@@ -98,7 +96,6 @@ def print_qr_code(data: str) -> None:
 
 
 # ─── HTTP Handler ────────────────────────────────────────────────────────────
-
 
 class MizbanHandler(SimpleHTTPRequestHandler):
     """Serves APIs and static files from frontend."""
@@ -179,7 +176,6 @@ class MizbanHandler(SimpleHTTPRequestHandler):
 
 
 # ─── Server Startup ─────────────────────────────────────────────────────────
-
 
 def main():
     url = get_server_url()
