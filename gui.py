@@ -1,11 +1,10 @@
 import tkinter as tk
+from tkinter import font as tkfont
 import io
 import sys
 import os
 import webbrowser
 import mizban
-from tkinter import scrolledtext
-from tkinter import font as tkfont
 
 def start_gui():
     url = mizban.get_server_url()
@@ -25,10 +24,10 @@ def start_gui():
 
     title_font = tkfont.Font(family="Helvetica", size=16, weight="bold")
     label_font = tkfont.Font(family="Helvetica", size=12)
+    mono_font = tkfont.Font(family="Courier", size=10)
 
     tk.Label(root, text="🚀  Mizban — LAN File Sharing Server", font=title_font).pack(pady=10)
 
-    # Shared folder label (clickable)
     folder_label = tk.Label(
         root,
         text=f"📂  Shared folder : {mizban.UPLOAD_DIR}",
@@ -41,7 +40,6 @@ def start_gui():
     folder_label.pack(pady=5)
     folder_label.bind("<Button-1>", lambda e: open_folder(mizban.UPLOAD_DIR))
 
-    # URL label (clickable)
     url_label = tk.Label(
         root,
         text=f"🌐 Access URL: {url}",
@@ -52,28 +50,21 @@ def start_gui():
     url_label.pack(pady=5)
     url_label.bind("<Button-1>", lambda e: webbrowser.open(url))
 
-    # QR Code output (centered)
-    tk.Label(root, text="📱QR code : Scan below to open in your mobile browser", font=label_font).pack(pady=5)
+    tk.Label(root, text="📱 QR code : Scan below to open in your mobile browser", font=label_font).pack(pady=5)
 
-    qr_frame_container = tk.Frame(root)
-    qr_frame_container.pack(fill="both", expand=True)
+    # QR code frame centered
+    qr_frame = tk.Frame(root)
+    qr_frame.pack(fill="both", expand=True)
 
-    qr_frame = tk.Frame(qr_frame_container)
-    qr_frame.place(relx=0.5, rely=0.5, anchor="center")  # center the frame
+    qr_label = tk.Label(qr_frame, text=qr_ascii, font=mono_font, justify="center")
+    qr_label.place(relx=0.5, rely=0.5, anchor="center")
 
-    qr_box = scrolledtext.ScrolledText(qr_frame, width=60, height=20, font=("Courier", 10))
-    qr_box.insert(tk.END, qr_ascii)
-    qr_box.configure(state="disabled")
-    qr_box.pack()
-
-    # Handle close window
     def on_close():
         print("[INFO] Closing Mizban...")
         root.destroy()
-        os._exit(0)  # force kill the whole process
+        os._exit(0)
 
     root.protocol("WM_DELETE_WINDOW", on_close)
-
     root.mainloop()
 
 def open_folder(path):
