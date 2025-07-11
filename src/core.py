@@ -4,9 +4,7 @@ import mimetypes
 import os
 import socket
 import sys
-import threading
 import urllib.parse
-import gui
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,7 +27,7 @@ except ImportError:
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("MIZBAN_PORT", 8000))
 
-BASE_DIR = Path(__file__).parent.resolve()
+BASE_DIR = Path(__file__).parent.parent.resolve()
 UPLOAD_DIR = Path.home() / "Desktop" / "MizbanShared"
 THUMBNAIL_DIR = UPLOAD_DIR / ".thumbnails"
 FRONTEND_DIR = BASE_DIR / "clients" / "frontend"
@@ -181,8 +179,7 @@ class MizbanHandler(SimpleHTTPRequestHandler):
 
 # ─── Server Startup ─────────────────────────────────────────────────────────
 
-
-def main():
+def start_server():
     os.chdir(FRONTEND_DIR)  # Serve frontend files
     server = ThreadingHTTPServer((HOST, PORT), MizbanHandler)
     try:
@@ -193,6 +190,3 @@ def main():
         server.server_close()
 
 
-if __name__ == "__main__":
-    threading.Thread(target=gui.start_gui, daemon=True).start()
-    main()
