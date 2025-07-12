@@ -8,7 +8,10 @@ import os
 import webbrowser
 
 from core import utils, server
-from config import settings, save_config
+from config import settings
+
+settings.MIZBAN_SHARED_DIR = "New Path"
+settings.save()
 
 
 def start_gui():
