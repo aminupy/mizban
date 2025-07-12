@@ -6,16 +6,19 @@ import io
 import sys
 import os
 import webbrowser
-import core
+
+from core import utils, server
+from config import settings, save_config
+
 
 def start_gui():
-    url = core.get_server_url()
+    url = utils.get_server_url(settings.PORT)
 
     # Capture the ASCII QR code output
     qr_output = io.StringIO()
     original_stdout = sys.stdout
     sys.stdout = qr_output
-    core.print_qr_code(url)
+    utils.print_qr_code(url)
     sys.stdout = original_stdout
     qr_ascii = qr_output.getvalue()
 
@@ -39,7 +42,7 @@ def start_gui():
 
     folder_label = tk.Label(
         root,
-        text=f"📂  Shared folder : {core.UPLOAD_DIR}",
+        text=f"📂  Shared folder : {settings.MIZBAN_SHARED_DIR}",
         font=label_font,
         fg="blue",
         cursor="hand2",
@@ -47,7 +50,7 @@ def start_gui():
         justify="left"
     )
     folder_label.pack(pady=5)
-    folder_label.bind("<Button-1>", lambda e: open_folder(core.UPLOAD_DIR))
+    folder_label.bind("<Button-1>", lambda e: open_folder(settings.MIZBAN_SHARED_DIR))
 
     url_label = tk.Label(
         root,
@@ -87,4 +90,4 @@ def open_folder(path):
 
 if __name__ == "__main__":
     threading.Thread(target=start_gui, daemon=True).start()
-    core.start_server()
+    server.start_server()
