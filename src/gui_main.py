@@ -78,11 +78,23 @@ def start_gui():
     folder_button.pack(pady=10)
 
     # QR code display
-    ttk.Label(root, text="📱 QR code : Scan below to open in your mobile browser", style="Body.TLabel").pack(pady=(30, 0))
+    ttk.Label(
+        root,
+        text="📱 QR code : Scan below to open in your mobile browser",
+        style="Body.TLabel"
+    ).pack(pady=(30, 10))
+
     qr_frame = ttk.Frame(root)
-    qr_frame.pack(fill="both", expand=True)
-    qr_label = ttk.Label(qr_frame, text=qr_ascii, style="Mono.TLabel", justify="center")
-    qr_label.place(relx=0.5, rely=0.5, anchor="center")
+    qr_frame.pack(fill="x", padx=10, pady=10)
+
+    qr_label = ttk.Label(
+        qr_frame,
+        text=qr_ascii,
+        style="Mono.TLabel",
+        justify="center"
+    )
+    qr_label.pack(anchor="center")
+
 
     def on_close():
         print("[INFO] Closing Mizban...")
