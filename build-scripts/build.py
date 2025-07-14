@@ -19,11 +19,11 @@ BUILD_DIR = "builds/nuitka"
 
 TARGETS = {
     "cli": {
-        "entry": "cli_main.py",
+        "entry": f"{Path(__file__).parent.parent.resolve()}/src/cli_main.py",
         "output": "Mizban_CLI.exe" if os.name == "nt" else "mizban_cli"
     },
     "gui": {
-        "entry": "gui_main.py",
+        "entry": f"{Path(__file__).parent.parent.resolve()}/src/gui_main.py",
         "output": "Mizban.exe" if os.name == "nt" else "mizban_gui"
     },
 }
@@ -65,12 +65,11 @@ def build_target(name, entry_script, output_name):
         "--nofollow-import-to=asyncio,unittest,distutils,setuptools,numpy,PIL.ImageFont,PIL.ImageDraw,PIL.ImageTk",
         f"--output-filename={output_name}",
     ]
-
-    if name == "gui":
-        if os.name == "nt" and ICON_PATH.endswith(".ico") and Path(ICON_PATH).exists():
-            cmd.append(f"--windows-icon-from-ico={ICON_PATH}")
-        elif ICON_PATH.endswith(".icns") and Path(ICON_PATH).exists():
-            cmd.append(f"--macos-app-icon={ICON_PATH}")
+    
+    if os.name == "nt" and ICON_PATH.endswith(".ico") and Path(ICON_PATH).exists():
+        cmd.append(f"--windows-icon-from-ico={ICON_PATH}")
+    elif ICON_PATH.endswith(".icns") and Path(ICON_PATH).exists():
+        cmd.append(f"--macos-app-icon={ICON_PATH}")
 
     print(" ".join(cmd), "\n")
 

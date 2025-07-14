@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
+import sys
 
+# User-specific configuration paths remain the same
 DEFAULT_CONFIG = {
     "mizban_shared_dir": str(Path.home() / "Desktop" / "MizbanShared"),
     "port": 8000
@@ -11,11 +13,32 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 CACHE_DIR = Path.home() / ".cache" / "Mizban"
 
 
+def get_base_dir() -> Path:
+    """
+    Returns the correct base directory whether running from source or as a
+    frozen (Nuitka) executable.
+    """
+    # This robust check works for Nuitka and other tools like PyInstaller.
+    if getattr(sys, 'frozen', False) or '__compiled__' in globals():
+        # ✨ We are running in a bundle (Nuitka executable).
+        # In --onefile mode, the base path is the temp folder where the
+        # script is extracted, which is the parent of __file__.
+        return Path(__file__).parent
+    else:
+        # We are running in a normal Python environment.
+        # The base dir is the project root (up two levels from this file).
+        return Path(__file__).parent.parent.resolve()
+
+
 class Settings:
+    # BASE_DIR is now correct for both development and --onefile builds
+    BASE_DIR: Path = get_base_dir()
+
     def __init__(self):
         self._config = DEFAULT_CONFIG.copy()
         self._load_from_file()
 
+    # The _load_from_file and save methods are unchanged...
     def _load_from_file(self):
         if CONFIG_FILE.exists():
             try:
@@ -35,6 +58,7 @@ class Settings:
         with open(CONFIG_FILE, "w") as f:
             json.dump(self._config, f, indent=4)
 
+    # All other properties are also unchanged...
     @property
     def MIZBAN_SHARED_DIR(self):
         return Path(self._config["mizban_shared_dir"])
@@ -61,7 +85,8 @@ class Settings:
 
     @property
     def FRONTEND_DIR(self):
-        return Path(__file__).parent.parent / "clients" / "frontend"
+        # ✨ This path now works for both environments because BASE_DIR is correct
+        return self.BASE_DIR / "clients" / "frontend"
 
 
 # Create a singleton-style shared settings instance

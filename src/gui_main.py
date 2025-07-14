@@ -1,117 +1,148 @@
 from pathlib import Path
 import threading
 import tkinter as tk
-from tkinter import filedialog
-from tkinter import ttk
-import io
+from tkinter import ttk, filedialog, font as tkfont
 import sys
 import os
 import webbrowser
 
 from core import utils, server
 from config import settings
+from ui_utils import RoundedFrame, create_gradient_title
 
+print(settings.FRONTEND_DIR)
+class MizbanApp:
+    def __init__(self, root):
+        self.root = root
+        self.setup_window()
+        self.create_styles()
+        self.create_widgets()
+        self.connect_commands()
+        
+        # Adjust window width once at startup
+        self.root.after(100, self.adjust_window_width)
 
-def start_gui():
-    url = utils.get_server_url(settings.PORT)
+    def setup_window(self):
+        """Configures the main root window."""
+        self.root.title("Mizban")
+        self.root.geometry("650x600")
+        self.root.configure(bg="#f0f0f0")
 
-    # Capture the ASCII QR code output
-    qr_output = io.StringIO()
-    original_stdout = sys.stdout
-    sys.stdout = qr_output
-    utils.print_qr_code(url)
-    sys.stdout = original_stdout
-    qr_ascii = qr_output.getvalue()
+        icon_path = Path(f"{settings.FRONTEND_DIR}/favicon.ico")
+        if sys.platform == "win32" and icon_path.exists():
+            self.root.iconbitmap(str(icon_path))
 
-    # GUI setup
-    root = tk.Tk()
-    root.title("Mizban")
-    root.geometry("600x500")
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
-    icon_path = Path(f"{Path().resolve()}/clients/frontend/favicon.ico")
-    if sys.platform == "win32" and icon_path.exists():
-        root.iconbitmap(str(icon_path))
+    def create_styles(self):
+        """Sets up fonts and ttk styles."""
+        self.default_font_name = "Trebuchet MS"
+        self.static_font_size = 11
+        style = ttk.Style()
+        style.configure("TButton", font=(self.default_font_name, 10))
 
-    style = ttk.Style()
-    style.configure("Title.TLabel", font=("Helvetica", 16, "bold"))
-    style.configure("Body.TLabel", font=("Helvetica", 12))
-    style.configure("Mono.TLabel", font=("Courier", 10))
+    def create_widgets(self):
+        """Creates and lays out all the widgets in the UI."""
+        # --- Main Frame ---
+        self.main_frame = tk.Frame(self.root, bg="#f0f0f0", padx=20, pady=20)
+        self.main_frame.pack(expand=True, fill="both")
+        self.main_frame.rowconfigure(3, weight=1)
+        self.main_frame.columnconfigure(0, weight=1)
+        
+        # --- Title ---
+        gradient_title = create_gradient_title(
+            parent=self.main_frame, bold_text="Mizban", regular_text=" — LAN File Sharing Server",
+            font_name=self.default_font_name, font_size=18, start_color="blue", end_color="purple"
+        )
+        gradient_title.grid(row=0, column=0, pady=(0, 30))
 
-    ttk.Label(root, text="🚀  Mizban — LAN File Sharing Server", style="Title.TLabel").pack(pady=20)
+        # --- Card 1: Shared Folder ---
+        folder_card = RoundedFrame(self.main_frame, radius=15, padding=15)
+        folder_card.grid(row=1, column=0, pady=5, sticky="ew")
+        folder_content_frame = folder_card.inner_frame
+        folder_content_frame.columnconfigure(1, weight=1)
 
-    # Folder Label
-    folder_label_var = tk.StringVar()
-    folder_label_var.set(f"📂  Shared folder : {settings.MIZBAN_SHARED_DIR}")
+        self.bold_folder_label = tk.Label(folder_content_frame, text="📂  Shared folder: ", font=(self.default_font_name, self.static_font_size, "bold"), bg="white")
+        self.bold_folder_label.grid(row=0, column=0, sticky="w")
 
-    folder_label = ttk.Label(
-        root,
-        textvariable=folder_label_var,
-        style="Body.TLabel",
-        foreground="blue",
-        cursor="hand2",
-        wraplength=550,
-        justify="left"
-    )
-    folder_label.pack(pady=5)
-    folder_label.bind("<Button-1>", lambda e: open_folder(settings.MIZBAN_SHARED_DIR))
+        self.folder_path_var = tk.StringVar(value=f"{settings.MIZBAN_SHARED_DIR}")
+        self.folder_path_label = tk.Label(folder_content_frame, textvariable=self.folder_path_var, font=(self.default_font_name, self.static_font_size), fg="blue", bg="white", cursor="hand2")
+        self.folder_path_label.grid(row=0, column=1, sticky="w")
 
-    # URL Label
-    url_label = ttk.Label(
-        root,
-        text=f"🌐 Access URL: {url}",
-        style="Body.TLabel",
-        foreground="blue",
-        cursor="hand2"
-    )
-    url_label.pack(pady=5)
-    url_label.bind("<Button-1>", lambda e: webbrowser.open(url))
+        self.folder_button = ttk.Button(folder_content_frame, text="Change Folder", padding=2)
+        self.folder_button.grid(row=0, column=2, padx=(10,0))
+        folder_card.fit_to_content()
 
-    # Folder selection Button
-    def choose_folder():
+        # --- Card 2: Access URL ---
+        url_card = RoundedFrame(self.main_frame, radius=15, padding=15)
+        url_card.grid(row=2, column=0, pady=5, sticky="ew")
+        url_content_frame = url_card.inner_frame
+        
+        self.url = utils.get_server_url(settings.PORT)
+        tk.Label(url_content_frame, text="🌐 Access URL: ", font=(self.default_font_name, self.static_font_size, "bold"), bg="white").pack(side=tk.LEFT)
+        self.url_label = tk.Label(url_content_frame, text=self.url, font=(self.default_font_name, self.static_font_size), fg="blue", bg="white", cursor="hand2")
+        self.url_label.pack(side=tk.LEFT)
+        url_card.fit_to_content()
+        
+        # --- Card 3: QR Code ---
+        qr_card = RoundedFrame(self.main_frame, radius=15, padding=15)
+        qr_card.grid(row=3, column=0, pady=(25, 0), sticky="nsew")
+        qr_content_frame = qr_card.inner_frame
+        
+        qr_text_frame = tk.Frame(qr_content_frame, bg="white")
+        qr_text_frame.pack(anchor="center", pady=(0, 10))
+        tk.Label(qr_text_frame, text="📱 QR code:", font=(self.default_font_name, self.static_font_size, "bold"), bg="white").pack(side=tk.LEFT)
+        tk.Label(qr_text_frame, text=" Scan below to open in your mobile browser", font=(self.default_font_name, self.static_font_size), bg="white").pack(side=tk.LEFT)
+        
+        qr_ascii = utils.generate_qr_ascii(self.url)
+        tk.Label(qr_content_frame, text=qr_ascii, font=("Courier", 10), bg="white", justify="center").pack(expand=True, fill="both")
+
+    def connect_commands(self):
+        """Binds all commands and events to their functions."""
+        self.folder_path_label.bind("<Button-1>", lambda e: utils.open_folder(settings.MIZBAN_SHARED_DIR))
+        self.url_label.bind("<Button-1>", lambda e: webbrowser.open(self.url))
+        self.folder_button.configure(command=self.choose_folder)
+
+    def choose_folder(self):
+        """Handles the 'Change Folder' button command."""
         shared_folder = filedialog.askdirectory(title="Select Shared Folder")
         if shared_folder:
             settings.MIZBAN_SHARED_DIR = shared_folder
             settings.save()
-            folder_label_var.set(f"📂  Shared folder : {settings.MIZBAN_SHARED_DIR}")
+            self.folder_path_var.set(f"{settings.MIZBAN_SHARED_DIR}")
+            self.adjust_window_width()
 
-    folder_button = ttk.Button(root, text="Select Shared Folder", command=choose_folder)
-    folder_button.pack(pady=10)
+    def adjust_window_width(self):
+        """Calculates required width and resizes the window."""
+        try:
+            if not self.root.winfo_exists(): return
+        except tk.TclError:
+            return
+        self.root.update_idletasks()
+        
+        bold_label_width = self.bold_folder_label.winfo_width()
+        path_font = tkfont.Font(font=self.folder_path_label.cget("font"))
+        path_label_width = path_font.measure(self.folder_path_var.get())
+        button_width = self.folder_button.winfo_width()
+        
+        required_content_width = bold_label_width + path_label_width + button_width + 100
+        current_height = self.root.winfo_height()
+        self.root.minsize(width=required_content_width, height=current_height)
 
-    # QR code display
-    ttk.Label(
-        root,
-        text="📱 QR code : Scan below to open in your mobile browser",
-        style="Body.TLabel"
-    ).pack(pady=(30, 10))
+        if self.root.winfo_width() < required_content_width:
+            self.root.geometry(f"{required_content_width}x{current_height}")
 
-    qr_frame = ttk.Frame(root)
-    qr_frame.pack(fill="x", padx=10, pady=10)
-
-    qr_label = ttk.Label(
-        qr_frame,
-        text=qr_ascii,
-        style="Mono.TLabel",
-        justify="center"
-    )
-    qr_label.pack(anchor="center")
-
-
-    def on_close():
+    def on_close(self):
+        """Handles the window closing event."""
         print("[INFO] Closing Mizban...")
-        root.destroy()
+        self.root.destroy()
         os._exit(0)
 
-    root.protocol("WM_DELETE_WINDOW", on_close)
+
+def start_gui():
+    root = tk.Tk()
+    app = MizbanApp(root)
     root.mainloop()
-
-
-def open_folder(path):
-    if sys.platform.startswith('linux'):
-        os.system(f'xdg-open "{path}"')
-    elif sys.platform == "darwin":  # macOS
-        os.system(f'open "{path}"')
-    elif sys.platform == "win32":
-        os.startfile(path)
 
 
 if __name__ == "__main__":

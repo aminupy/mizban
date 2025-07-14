@@ -1,6 +1,9 @@
+import io
+import os
 import socket
 from pathlib import Path
 import logging
+import sys
 
 try:
     from PIL import Image
@@ -55,3 +58,40 @@ def print_qr_code(data: str) -> None:
     qr.add_data(data)
     qr.make(fit=True)
     qr.print_ascii(invert=True)
+
+
+
+def generate_qr_ascii(data: str) -> str:
+    """
+    Generates a compact ASCII QR code and returns it as a string.
+    """
+    if not QR_AVAILABLE:
+        return "(Install `qrcode` to enable QR code)"
+        
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        # box_size=5,  # Keeps the blocks small
+        border=1,    # Reduced from 2 to make the overall code more compact
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+
+    # Use a string buffer to capture the output directly
+    output_buffer = io.StringIO()
+    qr.print_ascii(out=output_buffer, invert=True)
+    
+    return output_buffer.getvalue()
+
+
+def open_folder(path):
+    """Opens a directory in the default file explorer."""
+    try:
+        if sys.platform.startswith('linux'):
+            os.system(f'xdg-open "{path}"')
+        elif sys.platform == "darwin":  # macOS
+            os.system(f'open "{path}"')
+        elif sys.platform == "win32":
+            os.startfile(path)
+    except Exception as e:
+        print(f"Error opening folder: {e}")
