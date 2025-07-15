@@ -5,12 +5,24 @@ from tkinter import ttk, filedialog, font as tkfont
 import sys
 import os
 import webbrowser
+import pystray
+from PIL import Image
 
 from core import utils, server
 from config import settings
 from ui_utils import RoundedFrame, create_gradient_title
 
-print(settings.FRONTEND_DIR)
+
+
+# This checks if the app is a compiled executable
+if getattr(sys, 'frozen', False) or '__compiled__' in globals():
+    # Define the log file path next to the executable
+    log_file_path = os.path.join(os.path.dirname(sys.executable), "error_log.txt")
+    
+    # Redirect stdout and stderr to the log file
+    sys.stdout = open(log_file_path, 'w')
+    sys.stderr = sys.stdout
+
 class MizbanApp:
     def __init__(self, root):
         self.root = root
@@ -18,9 +30,58 @@ class MizbanApp:
         self.create_styles()
         self.create_widgets()
         self.connect_commands()
+
+        self.setup_tray_icon()
         
         # Adjust window width once at startup
         self.root.after(100, self.adjust_window_width)
+
+    def setup_tray_icon(self):
+        """Creates and runs the system tray icon in a separate thread."""
+        # Load the icon image
+        # Assuming your icon is in the project root, accessible via BASE_DIR
+        icon_path = settings.BASE_DIR / "clients" / "frontend" / "favicon.ico"
+        image = Image.open(icon_path)
+        
+        # Define the menu items
+        menu = (
+            pystray.MenuItem('Show', self.show_window, default=True),
+            pystray.MenuItem('Quit', self.quit_window)
+        )
+        
+        # Create the icon object
+        self.icon = pystray.Icon("mizban", image, "Mizban File Server", menu)
+        
+        # Run the icon in a separate thread so it doesn't block the GUI
+        threading.Thread(target=self.icon.run, daemon=True).start()
+    
+    def hide_window(self):
+        """Hides the main window."""
+        self.root.withdraw()
+        title = "Mizban is Running"
+        message = "Mizban is still running in the system tray."
+        self.icon.notify(message, title)
+
+    def show_window(self):
+        """Shows the main window."""
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+
+    def quit_window(self):
+        """Stops the tray icon and schedules the application to quit."""
+        # First, stop the tray icon's own loop
+        self.icon.stop()
+        
+        # ✨ Ask the main GUI thread to run the shutdown command safely
+        self.root.after(100, self._shutdown)
+
+    def _shutdown(self):
+        """Destroys the root window, causing the mainloop and app to exit."""
+        self.root.destroy()
+        # No need for os._exit(0); the server thread is a daemon and will exit
+        # when the main thread terminates after the mainloop ends.
+
 
     def setup_window(self):
         """Configures the main root window."""
@@ -134,9 +195,7 @@ class MizbanApp:
 
     def on_close(self):
         """Handles the window closing event."""
-        print("[INFO] Closing Mizban...")
-        self.root.destroy()
-        os._exit(0)
+        self.hide_window()
 
 
 def start_gui():
@@ -146,5 +205,9 @@ def start_gui():
 
 
 if __name__ == "__main__":
-    threading.Thread(target=start_gui, daemon=True).start()
-    server.start_server()
+    # 1. Start the server in a background daemon thread
+    server_thread = threading.Thread(target=server.start_server, daemon=True)
+    server_thread.start()
+
+    # 2. Run the GUI in the main thread
+    start_gui()

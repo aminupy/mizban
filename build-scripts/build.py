@@ -10,6 +10,7 @@ REQUIRED_MODULES = {
     "PIL": "Pillow",
     "qrcode": "qrcode",
     "nuitka": "nuitka",
+    "pystray": "pystray",
 }
 
 
@@ -52,7 +53,7 @@ def build_target(name, entry_script, output_name):
         sys.executable, "-m", "nuitka",
         entry_script,
         "--standalone",
-        "--onefile",
+        # "--onefile",
         "--follow-imports",
         "--enable-plugin=tk-inter",
         f"--include-data-dir={DATA_DIR}={DATA_DIR}",
@@ -62,7 +63,7 @@ def build_target(name, entry_script, output_name):
         "--assume-yes-for-downloads",
         "--noinclude-unittest-mode=error",
         "--windows-console-mode=disable" if name == "gui" else "--windows-console-mode=force",
-        "--nofollow-import-to=asyncio,unittest,distutils,setuptools,numpy,PIL.ImageFont,PIL.ImageDraw,PIL.ImageTk",
+        "--nofollow-import-to=hashlib,ssl,asyncio,unittest,distutils,setuptools,numpy,PIL.ImageFont,PIL.ImageDraw,PIL.ImageTk,PIL.WebPImagePlugin,PIL.Pdf*,PIL.Gif*",
         f"--output-filename={output_name}",
     ]
     

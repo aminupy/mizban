@@ -5,6 +5,7 @@ description = "A LAN File-Sharing Solution"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-"pillow",
-"qrcode",
+    "pillow",
+    "pystray>=0.19.5",
+    "qrcode",
 ]
