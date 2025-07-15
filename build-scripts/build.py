@@ -53,7 +53,6 @@ def build_target(name, entry_script, output_name):
         sys.executable, "-m", "nuitka",
         entry_script,
         "--standalone",
-        # "--onefile",
         "--follow-imports",
         "--enable-plugin=tk-inter",
         f"--include-data-dir={DATA_DIR}={DATA_DIR}",

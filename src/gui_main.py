@@ -1,4 +1,5 @@
 from pathlib import Path
+import socket
 import threading
 import tkinter as tk
 from tkinter import ttk, filedialog, font as tkfont
@@ -14,14 +15,13 @@ from ui_utils import RoundedFrame, create_gradient_title
 
 
 
-# This checks if the app is a compiled executable
 if getattr(sys, 'frozen', False) or '__compiled__' in globals():
-    # Define the log file path next to the executable
-    log_file_path = os.path.join(os.path.dirname(sys.executable), "error_log.txt")
-    
+    log_file_path = Path.home() / ".config" / "Mizban" / "logs.txt"
+
     # Redirect stdout and stderr to the log file
     sys.stdout = open(log_file_path, 'w')
     sys.stderr = sys.stdout
+
 
 class MizbanApp:
     def __init__(self, root):
@@ -205,9 +205,30 @@ def start_gui():
 
 
 if __name__ == "__main__":
-    # 1. Start the server in a background daemon thread
-    server_thread = threading.Thread(target=server.start_server, daemon=True)
-    server_thread.start()
+    # ✨ We'll use this socket as a lock to ensure only one instance runs
+    app_lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # 2. Run the GUI in the main thread
-    start_gui()
+    try:
+        # Try to bind to a specific port on the local machine
+        app_lock_socket.bind(("127.0.0.1", 60123))
+
+        
+        # 1. Start the server in a background daemon thread
+        server_thread = threading.Thread(target=server.start_server, daemon=True)
+        server_thread.start()
+
+        # 2. Run the GUI in the main thread
+        start_gui()
+
+    except OSError:
+        
+        # Show a user-friendly message box
+        # We need a dummy root window to show a message box
+        dummy_root = tk.Tk()
+        dummy_root.withdraw() # Hide the dummy window
+        from tkinter import messagebox
+        messagebox.showinfo("Mizban", "Mizban is already running.\n\nPlease check your system tray.")
+        dummy_root.destroy()
+        
+        # Exit the new instance
+        sys.exit()
