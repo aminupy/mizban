@@ -24,10 +24,18 @@ logger = logging.getLogger("mizban")
 
 
 def start_server():
-    os.chdir(settings.FRONTEND_DIR)
+    # ✨ FIX: Remove this non-thread-safe line
+    # os.chdir(settings.FRONTEND_DIR)
 
     def handler(*args, **kwargs):
-        MizbanHandler(*args, shared_dir=settings.MIZBAN_SHARED_DIR, thumb_dir=settings.THUMBNAIL_DIR, **kwargs)
+        # ✨ FIX: Pass the frontend directory directly to the handler
+        MizbanHandler(
+            *args, 
+            shared_dir=settings.MIZBAN_SHARED_DIR, 
+            thumb_dir=settings.THUMBNAIL_DIR, 
+            directory=settings.FRONTEND_DIR, 
+            **kwargs
+        )
 
     server = ThreadingHTTPServer((settings.HOST, settings.PORT), handler)
     try:
@@ -36,3 +44,5 @@ def start_server():
         logger.info("Shutting down...")
     finally:
         server.server_close()
+
+

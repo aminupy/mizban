@@ -1,7 +1,7 @@
-
 import json
 import mimetypes
 import urllib.parse
+import cgi
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
@@ -13,48 +13,63 @@ logger = logging.getLogger("mizban")
 
 
 class MizbanHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, shared_dir: Path, thumb_dir: Path, **kwargs):
+    # __init__ is updated to accept the directory parameter correctly
+    def __init__(self, *args, shared_dir: Path, thumb_dir: Path, directory=None, **kwargs):
         self.shared_dir = shared_dir
         self.thumb_dir = thumb_dir
-        super().__init__(*args, **kwargs)
+        # Pass the directory to the parent class for serving frontend files
+        super().__init__(*args, directory=directory, **kwargs)
 
     def do_POST(self):
+        """
+        Handles streaming file uploads without loading the whole file into memory.
+        """
         if self.path != "/upload/":
-            return self.send_error(HTTPStatus.NOT_FOUND)
+            return self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
 
-        content_type = self.headers.get("Content-Type", "")
-        if "multipart/form-data" not in content_type:
-            return self.send_error(HTTPStatus.BAD_REQUEST, "Invalid Content-Type")
+        # Use cgi.FieldStorage for robust multipart/form-data parsing
+        # It correctly handles streaming data from self.rfile
+        form = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': self.headers['Content-Type']}
+        )
 
-        boundary = content_type.split("boundary=")[-1]
-        remain = int(self.headers.get("Content-Length", 0))
-        data = self.rfile.read(remain)
+        if 'file' not in form:
+            return self.send_error(HTTPStatus.BAD_REQUEST, "File field 'file' not found in form.")
 
-        delimiter = f"--{boundary}".encode()
-        parts = data.split(delimiter)
+        file_item = form['file']
+        if not file_item.filename:
+            return self.send_error(HTTPStatus.BAD_REQUEST, "No file selected for upload.")
 
-        for part in parts:
-            if b"Content-Disposition" in part:
-                header, body = part.split(b"\r\n\r\n", 1)
-                body = body.rstrip(b"\r\n--")
-                for line in header.decode().split("\r\n"):
-                    if "filename=" in line:
-                        filename = line.split("filename=")[-1].strip('"')
+        # Sanitize filename to prevent directory traversal attacks
+        filename = Path(file_item.filename).name
+        dest_path = self.shared_dir / filename
+        
+        chunk_size = 8192 # Read and write in 8KB chunks
+        bytes_written = 0
+        try:
+            with open(dest_path, 'wb') as f:
+                while True:
+                    chunk = file_item.file.read(chunk_size)
+                    if not chunk:
                         break
-                else:
-                    continue
+                    f.write(chunk)
+                    bytes_written += len(chunk)
 
-                dest = self.shared_dir / filename
-                with open(dest, "wb") as f:
-                    f.write(body)
-                thumb = self.thumb_dir / f"{filename}.jpg"
-                generate_thumbnail(dest, thumb)
+            logger.info(f"Received file: {filename}, size: {bytes_written} bytes")
 
-                self._send_json({"filename": filename, "message": "Uploaded"}, HTTPStatus.CREATED)
-                return
+            # Generate thumbnail after successful upload
+            thumb_path = self.thumb_dir / f"{filename}.jpg"
+            generate_thumbnail(dest_path, thumb_path)
 
-        self.send_error(HTTPStatus.BAD_REQUEST, "No file found")
+            self._send_json({"filename": filename, "message": "Uploaded"}, HTTPStatus.CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error during file upload: {e}")
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Failed to save file.")
 
+    # --- Your do_GET and other helper methods remain the same ---
     def do_GET(self):
         if self.path.startswith("/download/"):
             name = urllib.parse.unquote(self.path.removeprefix("/download/"))
@@ -68,27 +83,34 @@ class MizbanHandler(SimpleHTTPRequestHandler):
             files = [f.name for f in self.shared_dir.iterdir() if f.is_file()]
             return self._send_json({"files": files})
 
-        self.path = "/" + self.path.lstrip("/")
+        # Fallback to serving frontend files (index.html, css, etc.)
         return super().do_GET()
 
     def _serve_file(self, path: Path):
         if not path.exists() or not path.is_file():
             return self.send_error(HTTPStatus.NOT_FOUND)
-        ctype = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(path.stat().st_size))
-        self.end_headers()
-        with open(path, "rb") as f:
-            self.wfile.write(f.read())
+        try:
+            with open(path, "rb") as f:
+                ctype = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Content-Length", str(path.stat().st_size))
+                self.end_headers()
+                self.wfile.write(f.read())
+        except Exception as e:
+            logger.error(f"Error serving file {path}: {e}")
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def _send_json(self, obj, status=HTTPStatus.OK):
-        data = json.dumps(obj, ensure_ascii=False).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
+        try:
+            data = json.dumps(obj, ensure_ascii=False).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+        except Exception as e:
+            logger.error(f"Error sending JSON: {e}")
 
     def log_message(self, format, *args):
         logger.info("%s - %s" % (self.client_address[0], format % args))

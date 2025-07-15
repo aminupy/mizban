@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Mizban"
-#define MyAppVersion "1.1"
+#define MyAppVersion "2.0"
 #define MyAppPublisher "aminupy"
 #define MyAppURL "https://github.com/aminupy/mizban"
 #define MyAppExeName "Mizban.exe"
@@ -10,7 +10,7 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{D3C469A8-71B3-40A9-B411-26330EB76D9F}
+AppId={{6D5D6D81-54A5-4612-8623-DD580EA7F0F6}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -30,11 +30,9 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 LicenseFile=C:\Users\ABHP-Software\Projects\mizban\LICENSE
-; Remove the following line to run in administrative install mode (install for all users).
-PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=commandline
-OutputDir=C:\Users\ABHP-Software\Desktop
-OutputBaseFilename=mizban
+; Uncomment the following line to run in non administrative install mode (install for current user only).
+;PrivilegesRequired=lowest
+OutputBaseFilename=mizban-innosetup
 SetupIconFile=C:\Users\ABHP-Software\Projects\mizban\clients\frontend\favicon.ico
 SolidCompression=yes
 WizardStyle=modern
@@ -46,7 +44,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\ABHP-Software\Projects\mizban\build\nuitka\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\ABHP-Software\Projects\mizban\builds\nuitka\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\ABHP-Software\Projects\mizban\builds\nuitka\gui_main.dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
