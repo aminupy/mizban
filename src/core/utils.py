@@ -86,6 +86,7 @@ def generate_qr_ascii(data: str) -> str:
 
 def open_folder(path):
     """Opens a directory in the default file explorer."""
+    Path(path).mkdir(parents=True, exist_ok=True)
     try:
         if sys.platform.startswith('linux'):
             os.system(f'xdg-open "{path}"')

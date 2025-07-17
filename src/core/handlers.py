@@ -12,6 +12,35 @@ from .utils import generate_thumbnail
 logger = logging.getLogger("mizban")
 
 
+import functools
+
+def ensure_storages_exists(func):
+    """
+    A decorator that ensures the shared directory exists before executing
+    the decorated class method.
+    """
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        # 'self' is the instance of MizbanHandler
+        try:
+            # The core logic: create the directory if it doesn't exist.
+            self.shared_dir.mkdir(parents=True, exist_ok=True)
+            self.thumb_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            # Handle the case where we can't create the directory
+            logger.error(f"Permission denied to create directory: {self.shared_dir}")
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Storage permission error.")
+            return # Stop execution
+        except Exception as e:
+            logger.error(f"Failed to create shared directory: {e}")
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Storage configuration error.")
+            return
+
+        # If everything is okay, run the original method (do_POST or do_GET)
+        return func(self, *args, **kwargs)
+    return wrapper
+
+
 class MizbanHandler(SimpleHTTPRequestHandler):
     # __init__ is updated to accept the directory parameter correctly
     def __init__(self, *args, shared_dir: Path, thumb_dir: Path, directory=None, **kwargs):
@@ -20,6 +49,7 @@ class MizbanHandler(SimpleHTTPRequestHandler):
         # Pass the directory to the parent class for serving frontend files
         super().__init__(*args, directory=directory, **kwargs)
 
+    @ensure_storages_exists
     def do_POST(self):
         """
         Handles streaming file uploads without loading the whole file into memory.
@@ -69,37 +99,66 @@ class MizbanHandler(SimpleHTTPRequestHandler):
             logger.error(f"Error during file upload: {e}")
             self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Failed to save file.")
 
-    # --- Your do_GET and other helper methods remain the same ---
+    
+    def do_HEAD(self):
+        """
+        Handles HEAD requests. This is used by the frontend to check if a 
+        file exists before starting a download, without fetching the file body.
+        """
+        # We reuse the same logic as GET but send only headers
+        path = self._get_path_for_request()
+        if path:
+            self._send_file_headers(path)
+        else:
+            # If path is not a file to serve, let the parent handle it (e.g., for index.html)
+            super().do_HEAD()
+
+
+    @ensure_storages_exists
     def do_GET(self):
+        """Handles GET requests for downloads, thumbnails, and API calls."""
+        path = self._get_path_for_request()
+        if path:
+            self._serve_file(path)
+        elif self.path == "/files/":
+            files = [f.name for f in self.shared_dir.iterdir() if f.is_file()]
+            self._send_json({"files": files})
+        else:
+            # Fallback to serving frontend files
+            super().do_GET()
+
+    def _get_path_for_request(self) -> Path | None:
+        """Helper to determine the file path from the request URL."""
         if self.path.startswith("/download/"):
             name = urllib.parse.unquote(self.path.removeprefix("/download/"))
-            return self._serve_file(self.shared_dir / name)
-
+            return self.shared_dir / name
         if self.path.startswith("/thumbnails/"):
             name = self.path.removeprefix("/thumbnails/")
-            return self._serve_file(self.thumb_dir / f"{name}.jpg")
+            return self.thumb_dir / f"{name}.jpg"
+        return None
 
-        if self.path == "/files/":
-            files = [f.name for f in self.shared_dir.iterdir() if f.is_file()]
-            return self._send_json({"files": files})
-
-        # Fallback to serving frontend files (index.html, css, etc.)
-        return super().do_GET()
+    def _send_file_headers(self, path: Path):
+        """Sends the HTTP headers for a file response."""
+        if not path.is_file():
+            self.send_error(HTTPStatus.NOT_FOUND, "File not found")
+            return False
+        
+        ctype = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(path.stat().st_size))
+        self.end_headers()
+        return True
 
     def _serve_file(self, path: Path):
-        if not path.exists() or not path.is_file():
-            return self.send_error(HTTPStatus.NOT_FOUND)
+        """Sends the headers and body for a file."""
+        if not self._send_file_headers(path):
+            return
         try:
             with open(path, "rb") as f:
-                ctype = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
-                self.send_response(HTTPStatus.OK)
-                self.send_header("Content-Type", ctype)
-                self.send_header("Content-Length", str(path.stat().st_size))
-                self.end_headers()
                 self.wfile.write(f.read())
         except Exception as e:
             logger.error(f"Error serving file {path}: {e}")
-            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def _send_json(self, obj, status=HTTPStatus.OK):
         try:
