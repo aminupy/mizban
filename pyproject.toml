@@ -6,7 +6,8 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "pillow",
-    "pystray,
+    "pystray",
     "qrcode",
     "legacy-cgi; python_version >= '3.13'",
+    "nuitka"
 ]
