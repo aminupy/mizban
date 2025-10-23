@@ -8,11 +8,11 @@ const uploadedFiles = new Set();
 const fileTypes = [
   {
     iconSrc: "icons/audio_file.svg",
-    extensions: [".mp3", ".flac", ".wav", ".wma", ".aac", ".ogg", ".midi"],
+    extensions: [".mp3", ".flac", ".wav", ".wma", ".aac", ".ogg", ".midi", ".m4a"],
   },
   {
     iconSrc: "icons/video_file.svg",
-    extensions: [".mp4", ".mkv", ".avi", ".mpeg", ".wmv"],
+    extensions: [".mp4", ".mkv", ".avi", ".mpeg", ".wmv", ".mov"],
   },
   {
     iconSrc: "icons/docs.svg",
@@ -24,7 +24,7 @@ const fileTypes = [
   },
   {
     iconSrc: "icons/folder_zip.svg",
-    extensions: [".zip", ".tar.gz", ".tar.xz", ".rar"],
+    extensions: [".zip", ".tar.gz", ".tar.xz", ".rar", ".7z"],
   },
   {
     iconSrc: "icons/text_snippet.svg",
@@ -60,7 +60,7 @@ async function upload_file(file, progressBar) {
     // Start the infinite loading animation
     simulateProgress(progressBar, true);
 
-    const response = await fetch('/api/files/upload/', {
+    const response = await fetch('/upload/', {
       method: 'POST',
       body: formData
     });
@@ -97,36 +97,44 @@ async function upload_file(file, progressBar) {
     }
   }
 }
-
 /**
- * Initiates a file download without pre-fetching the file data.
+ * Checks if a file exists and then initiates a browser-native download.
  * @param {string} file_name - The name of the file to download.
  * @param {Event} event - The event object (optional).
  */
-function download_file(file_name, event) {
-  // If event is provided, prevent default behavior
+async function download_file(file_name, event) {
   if (event) {
     event.preventDefault();
   }
 
-  // Construct the download URL
-  const url = `/api/files/download/${encodeURIComponent(file_name)}`;
+  const url = `/download/${encodeURIComponent(file_name)}`;
 
-  // Create a temporary anchor element
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = file_name; // Optional: Suggests a default file name
+  try {
+    // ✨ Step 1: Send a HEAD request to check if the file exists
+    const response = await fetch(url, { method: 'HEAD' });
 
-  // Append the link to the body (required for Firefox)
-  document.body.appendChild(link);
+    // ✨ Step 2: Check the response status
+    if (!response.ok) {
+      // If the file doesn't exist (e.g., 404 Not Found), show an alert and refresh
+      alert(`File not found: "${file_name}" may have been deleted. The list will be refreshed.`);
+      window.location.reload();
+      return;
+    }
 
-  // Programmatically click the link to trigger the download
-  link.click();
+    // ✨ Step 3: If the check was successful, trigger the native browser download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file_name; // This attribute suggests the filename to the browser
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-  // Clean up by removing the link
-  document.body.removeChild(link);
+  } catch (error) {
+    console.error('Download check failed:', error);
+    alert('An error occurred while checking for the file.');
+  }
 }
-
 /**
  * Fetches existing uploaded files from the server and displays them.
  */
@@ -134,7 +142,7 @@ async function fetchExistingUploads() {
   dropZone.style.display = 'none';
 
   try {
-    const response = await fetch('/api/files/files/', {
+    const response = await fetch('/files/', {
       method: 'GET'
     });
 
@@ -325,7 +333,7 @@ function showError(message) {
  * @param {HTMLImageElement} fileIcon - imageElemnt to set thumbnail
  */
 async function getThumbnail(fileName, fileIcon) {
-  const url = `/api/files/thumbnails/${encodeURIComponent(fileName)}`;
+  const url = `/thumbnails/${encodeURIComponent(fileName)}`;
 
   const options = {
     method: "GET"

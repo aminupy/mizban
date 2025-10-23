@@ -5,10 +5,9 @@ description = "A LAN File-Sharing Solution"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-"fastapi",
-"python-multipart",
-"uvicorn[standard]",
-"pillow",
-"qrcode",
-"aiofiles"
+    "pillow",
+    "pystray",
+    "qrcode",
+    "legacy-cgi; python_version >= '3.13'",
+    "nuitka"
 ]
