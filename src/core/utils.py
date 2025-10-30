@@ -21,22 +21,46 @@ logger = logging.getLogger("mizban")
 
 
 def get_server_url(port: int) -> str:
+    """Return a LAN-accessible URL without requiring Internet access.
+
+    Attempts to detect a non-loopback IPv4 from local interfaces, then falls
+    back to a UDP connect trick that doesn't send packets, and finally to
+    localhost.
+    """
+    ip = None
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.connect(("8.8.8.8", 80))
-        ip = sock.getsockname()[0]
-    except OSError:
-        ip = "127.0.0.1"
-    finally:
-        sock.close()
+        # Prefer interface-derived addresses (non-loopback)
+        host = socket.gethostname()
+        addrs = socket.getaddrinfo(host, None, family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        for info in addrs:
+            cand = info[4][0]
+            if not cand.startswith("127."):
+                ip = cand
+                break
+    except Exception:
+        pass
+
+    if not ip:
+        try:
+            # UDP connect trick that doesn't require Internet
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.connect(("10.255.255.255", 1))
+                ip = s.getsockname()[0]
+        except Exception:
+            ip = "127.0.0.1"
+
     return f"http://{ip}:{port}/"
+
+
+    
 
 
 def generate_thumbnail(src_path: Path, dest_path: Path) -> None:
     if not PIL_AVAILABLE:
         return
     try:
-        if src_path.suffix.lower() in (".jpg", ".jpeg", ".png", ".gif", ".svg"):
+        # Skip SVG as Pillow cannot rasterize it without additional deps
+        if src_path.suffix.lower() in (".jpg", ".jpeg", ".png", ".gif"):
             with Image.open(src_path) as img:
                 img = img.convert('RGB')
                 img.thumbnail((200, 200))

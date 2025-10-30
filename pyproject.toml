@@ -3,11 +3,10 @@ name = "mizban"
 version = "1.1.0"
 description = "A LAN File-Sharing Solution"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "pillow",
     "pystray",
     "qrcode",
-    "legacy-cgi; python_version >= '3.13'",
     "nuitka"
 ]

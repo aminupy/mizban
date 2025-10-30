@@ -4,7 +4,7 @@
 #define MyAppName "Mizban"
 #define MyAppVersion "2.0.0"
 #define MyAppPublisher "MohammadAmin Eskandari"
-#define MyAppURL "https://github.com/aminupy"
+#define MyAppURL "https://github.com/aminupy/mizabn"
 #define MyAppExeName "Mizban.exe"
 
 [Setup]
@@ -29,13 +29,13 @@ ArchitecturesAllowed=x64compatible
 ; the 64-bit view of the registry.
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
-LicenseFile=C:\Users\ABHP-Software-Lead\Projects\mizban\LICENSE
+LicenseFile=C:\Users\ABHP-Software-Lead\Projects\aminupy\mizban\LICENSE
 ; Remove the following line to run in administrative install mode (install for all users).
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-OutputDir=C:\Users\ABHP-Software-Lead\Projects\mizban\bundles
-OutputBaseFilename=Mizban-v2.0.0-beta-x64-setup.exe
-SetupIconFile=C:\Users\ABHP-Software-Lead\Projects\mizban\clients\frontend\favicon.ico
+OutputDir=C:\Users\ABHP-Software-Lead\Projects\aminupy\mizban\bundles
+OutputBaseFilename=MizbanGUI-v2.0.0-x64-setup.exe
+SetupIconFile=C:\Users\ABHP-Software-Lead\Projects\aminupy\mizban\clients\frontend\favicon.ico
 SolidCompression=yes
 WizardStyle=modern
 
@@ -46,8 +46,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\ABHP-Software-Lead\Projects\mizban\builds\nuitka\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\ABHP-Software-Lead\Projects\mizban\builds\nuitka\gui_main.dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\ABHP-Software-Lead\Projects\aminupy\mizban\builds\nuitka\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\ABHP-Software-Lead\Projects\aminupy\mizban\builds\nuitka\gui_main.dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
