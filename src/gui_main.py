@@ -4,15 +4,37 @@ import threading
 import tkinter as tk
 from tkinter import ttk, filedialog, font as tkfont
 import sys
-import os
 import webbrowser
 import pystray
 from PIL import Image
+import logging
+from contextlib import suppress
 
 from core import utils, server
 from config import settings
 from ui_utils import RoundedFrame, create_gradient_title
 
+
+logger = logging.getLogger("mizban.gui")
+
+
+def _show_dialog(title: str, message: str, kind: str = "info") -> None:
+    dummy_root: tk.Tk | None = None
+    try:
+        from tkinter import messagebox
+
+        dummy_root = tk.Tk()
+        dummy_root.withdraw()
+        if kind == "error":
+            messagebox.showerror(title, message, parent=dummy_root)
+        else:
+            messagebox.showinfo(title, message, parent=dummy_root)
+    except Exception as exc:  # pragma: no cover - GUI environment specific
+        logger.warning("Unable to display %s dialog: %s", kind, exc)
+        print(f"{title}: {message}")
+    finally:
+        if dummy_root is not None:
+            dummy_root.destroy()
 
 
 if getattr(sys, 'frozen', False) or '__compiled__' in globals():
@@ -24,8 +46,13 @@ if getattr(sys, 'frozen', False) or '__compiled__' in globals():
 
 
 class MizbanApp:
-    def __init__(self, root):
+    def __init__(self, root, http_server, server_thread):
         self.root = root
+        self.http_server = http_server
+        self.server_thread = server_thread
+        self.server_port = http_server.server_address[1]
+        self.icon = None
+        self._tray_thread = None
         self.setup_window()
         self.create_styles()
         self.create_widgets()
@@ -41,26 +68,46 @@ class MizbanApp:
         # Load the icon image
         # Assuming your icon is in the project root, accessible via BASE_DIR
         icon_path = settings.BASE_DIR / "clients" / "frontend" / "favicon.ico"
-        image = Image.open(icon_path)
-        
-        # Define the menu items
+        try:
+            image = Image.open(icon_path)
+        except FileNotFoundError:
+            logger.warning("Tray icon not found at %s; skipping system tray integration.", icon_path)
+            return
+        except Exception as exc:
+            logger.warning("Unable to load tray icon from %s: %s", icon_path, exc)
+            return
+
         menu = (
             pystray.MenuItem('Show', self.show_window, default=True),
             pystray.MenuItem('Quit', self.quit_window)
         )
-        
-        # Create the icon object
-        self.icon = pystray.Icon("mizban", image, "Mizban File Server", menu)
-        
-        # Run the icon in a separate thread so it doesn't block the GUI
-        threading.Thread(target=self.icon.run, daemon=True).start()
+
+        try:
+            self.icon = pystray.Icon("mizban", image, "Mizban File Server", menu)
+        except Exception as exc:  # pragma: no cover - environment specific
+            logger.warning("Unable to initialise system tray icon: %s", exc)
+            self.icon = None
+            return
+
+        def run_icon():
+            try:
+                self.icon.run()
+            except Exception as exc:  # pragma: no cover - environment specific
+                logger.warning("System tray icon stopped unexpectedly: %s", exc)
+
+        self._tray_thread = threading.Thread(target=run_icon, daemon=True)
+        self._tray_thread.start()
     
     def hide_window(self):
         """Hides the main window."""
         self.root.withdraw()
         title = "Mizban is Running"
         message = "Mizban is still running in the system tray."
-        self.icon.notify(message, title)
+        if self.icon:
+            try:
+                self.icon.notify(message, title)
+            except Exception as exc:  # pragma: no cover - environment specific
+                logger.debug("Tray notification failed: %s", exc)
 
     def show_window(self):
         """Shows the main window."""
@@ -71,16 +118,33 @@ class MizbanApp:
     def quit_window(self):
         """Stops the tray icon and schedules the application to quit."""
         # First, stop the tray icon's own loop
-        self.icon.stop()
+        if self.icon:
+            try:
+                self.icon.stop()
+            except Exception as exc:  # pragma: no cover - environment specific
+                logger.debug("Tray icon stop failed: %s", exc)
         
         # ✨ Ask the main GUI thread to run the shutdown command safely
         self.root.after(100, self._shutdown)
 
     def _shutdown(self):
         """Destroys the root window, causing the mainloop and app to exit."""
+        if self.icon:
+            with suppress(Exception):
+                self.icon.visible = False
+        if self.http_server:
+            try:
+                self.http_server.shutdown()
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.warning("Error shutting down server: %s", exc)
+        if self.server_thread and self.server_thread.is_alive():
+            self.server_thread.join(timeout=5)
+        if self.http_server:
+            with suppress(Exception):
+                self.http_server.server_close()
+        self.http_server = None
+        self.server_thread = None
         self.root.destroy()
-        # No need for os._exit(0); the server thread is a daemon and will exit
-        # when the main thread terminates after the mainloop ends.
 
 
     def setup_window(self):
@@ -139,7 +203,7 @@ class MizbanApp:
         url_card.grid(row=2, column=0, pady=5, sticky="ew")
         url_content_frame = url_card.inner_frame
         
-        self.url = utils.get_server_url(settings.PORT)
+        self.url = utils.get_server_url(self.server_port)
         tk.Label(url_content_frame, text="🌐 Access URL: ", font=(self.default_font_name, self.static_font_size, "bold"), bg="white").pack(side=tk.LEFT)
         self.url_label = tk.Label(url_content_frame, text=self.url, font=(self.default_font_name, self.static_font_size), fg="blue", bg="white", cursor="hand2")
         self.url_label.pack(side=tk.LEFT)
@@ -198,37 +262,73 @@ class MizbanApp:
         self.hide_window()
 
 
-def start_gui():
+def start_gui(http_server):
     root = tk.Tk()
-    app = MizbanApp(root)
-    root.mainloop()
+    server_thread = threading.Thread(
+        target=server.serve_forever,
+        args=(http_server,),
+        daemon=True,
+        name="mizban-http-server",
+    )
+    server_thread.start()
+
+    app = MizbanApp(root, http_server, server_thread)
+    try:
+        root.mainloop()
+    finally:
+        if app.http_server:
+            with suppress(Exception):
+                app.http_server.shutdown()
+            with suppress(Exception):
+                app.http_server.server_close()
+        if server_thread.is_alive():
+            server_thread.join(timeout=5)
+    return app
+
+
+def main() -> None:
+    app_lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    with suppress(OSError):
+        app_lock_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    try:
+        app_lock_socket.bind(("127.0.0.1", 60123))
+        app_lock_socket.listen(1)
+    except OSError as err:
+        logger.info("Mizban appears to be running already: %s", err)
+        _show_dialog("Mizban", "Mizban is already running.\n\nPlease check your system tray.")
+        with suppress(Exception):
+            app_lock_socket.close()
+        sys.exit(0)
+
+    http_server = None
+    try:
+        http_server = server.create_server()
+    except OSError as exc:
+        _show_dialog(
+            "Mizban",
+            f"Unable to start the server on {settings.HOST}:{settings.PORT}.\n\n{exc}",
+            kind="error",
+        )
+        with suppress(Exception):
+            app_lock_socket.close()
+        sys.exit(1)
+
+    try:
+        start_gui(http_server)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.exception("Unexpected Mizban GUI failure: %s", exc)
+        _show_dialog("Mizban", f"Unexpected error: {exc}", kind="error")
+        sys.exit(1)
+    finally:
+        if http_server:
+            with suppress(Exception):
+                http_server.shutdown()
+            with suppress(Exception):
+                http_server.server_close()
+        with suppress(Exception):
+            app_lock_socket.close()
 
 
 if __name__ == "__main__":
-    # ✨ We'll use this socket as a lock to ensure only one instance runs
-    app_lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    try:
-        # Try to bind to a specific port on the local machine
-        app_lock_socket.bind(("127.0.0.1", 60123))
-
-        
-        # 1. Start the server in a background daemon thread
-        server_thread = threading.Thread(target=server.start_server, daemon=True)
-        server_thread.start()
-
-        # 2. Run the GUI in the main thread
-        start_gui()
-
-    except OSError:
-        
-        # Show a user-friendly message box
-        # We need a dummy root window to show a message box
-        dummy_root = tk.Tk()
-        dummy_root.withdraw() # Hide the dummy window
-        from tkinter import messagebox
-        messagebox.showinfo("Mizban", "Mizban is already running.\n\nPlease check your system tray.")
-        dummy_root.destroy()
-        
-        # Exit the new instance
-        sys.exit()
+    main()
