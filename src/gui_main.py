@@ -1,24 +1,83 @@
-from pathlib import Path
-import socket
-import threading
-import tkinter as tk
-from tkinter import ttk, filedialog, font as tkfont
-import sys
-import webbrowser
-import pystray
-from PIL import Image
-import logging
-from contextlib import suppress
+from __future__ import annotations
 
-from core import utils, server
+import logging
+import os
+import socket
+import sys
+import threading
+import webbrowser
+from contextlib import suppress
+from pathlib import Path
+
 from config import settings
+from core import server, utils
+
+try:
+    import tkinter as tk
+    from tkinter import filedialog, font as tkfont, ttk
+except Exception as exc:  # pragma: no cover - depends on host environment
+    tk = None
+    filedialog = None
+    tkfont = None
+    ttk = None
+    _TK_IMPORT_ERROR = exc
+else:
+    _TK_IMPORT_ERROR = None
+
+pystray = None
+Image = None
+_PYSTRAY_IMPORT_ERROR: Exception | None = None
+_PIL_IMPORT_ERROR: Exception | None = None
+
+def _ensure_tray_dependencies() -> bool:
+    global pystray, Image, _PYSTRAY_IMPORT_ERROR, _PIL_IMPORT_ERROR
+    if pystray is None and _PYSTRAY_IMPORT_ERROR is None:
+        try:
+            import pystray as _pystray
+        except Exception as exc:  # pragma: no cover - depends on host environment
+            _PYSTRAY_IMPORT_ERROR = exc
+            pystray = None
+        else:
+            pystray = _pystray
+    if Image is None and _PIL_IMPORT_ERROR is None:
+        try:
+            from PIL import Image as _Image
+        except Exception as exc:  # pragma: no cover - depends on Pillow availability
+            _PIL_IMPORT_ERROR = exc
+            Image = None
+        else:
+            Image = _Image
+    return pystray is not None and Image is not None
+
 from ui_utils import RoundedFrame, create_gradient_title
 
 
 logger = logging.getLogger("mizban.gui")
 
 
+def _gui_available() -> tuple[bool, str | None]:
+    if tk is None:
+        return False, f"tkinter import failed: {_TK_IMPORT_ERROR}"
+    if sys.platform.startswith("linux"):
+        if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+            return False, "No DISPLAY/WAYLAND_DISPLAY environment variable set."
+    return True, None
+
+
+def _launch_cli(reason: str) -> None:
+    logger.info("Falling back to CLI mode (%s).", reason)
+    # Import lazily to avoid circular imports when running the GUI normally.
+    from cli_main import run as cli_run
+
+    cli_run()
+
+
 def _show_dialog(title: str, message: str, kind: str = "info") -> None:
+    if tk is None:
+        logger.info("%s: %s", title, message)
+        print(f"{title}: {message}")
+        return
+
     dummy_root: tk.Tk | None = None
     try:
         from tkinter import messagebox
@@ -37,12 +96,14 @@ def _show_dialog(title: str, message: str, kind: str = "info") -> None:
             dummy_root.destroy()
 
 
-if getattr(sys, 'frozen', False) or '__compiled__' in globals():
+if getattr(sys, "frozen", False) or "__compiled__" in globals():
     log_file_path = Path.home() / ".config" / "Mizban" / "logs.txt"
-
-    # Redirect stdout and stderr to the log file
-    sys.stdout = open(log_file_path, 'w')
-    sys.stderr = sys.stdout
+    try:
+        log_file_path.parent.mkdir(parents=True, exist_ok=True)
+        sys.stdout = open(log_file_path, "a", buffering=1)
+        sys.stderr = sys.stdout
+    except Exception as exc:  # pragma: no cover - depends on filesystem
+        logger.warning("Unable to redirect stdout/stderr to %s: %s", log_file_path, exc)
 
 
 class MizbanApp:
@@ -65,6 +126,16 @@ class MizbanApp:
 
     def setup_tray_icon(self):
         """Creates and runs the system tray icon in a separate thread."""
+        if not _ensure_tray_dependencies():
+            if _PYSTRAY_IMPORT_ERROR:
+                logger.info(
+                    "System tray integration is unavailable: %s", _PYSTRAY_IMPORT_ERROR
+                )
+            if _PIL_IMPORT_ERROR:
+                logger.info(
+                    "Tray icon support requires Pillow; skipping system tray integration."
+                )
+            return
         # Load the icon image
         # Assuming your icon is in the project root, accessible via BASE_DIR
         icon_path = settings.BASE_DIR / "clients" / "frontend" / "favicon.ico"
@@ -230,6 +301,9 @@ class MizbanApp:
 
     def choose_folder(self):
         """Handles the 'Change Folder' button command."""
+        if filedialog is None:
+            _show_dialog("Mizban", "Folder selection is not available.", kind="error")
+            return
         shared_folder = filedialog.askdirectory(title="Select Shared Folder")
         if shared_folder:
             settings.MIZBAN_SHARED_DIR = shared_folder
@@ -263,7 +337,12 @@ class MizbanApp:
 
 
 def start_gui(http_server):
-    root = tk.Tk()
+    if tk is None:
+        raise RuntimeError("Tkinter is not available.")
+    try:
+        root = tk.Tk()
+    except tk.TclError as exc:
+        raise RuntimeError(f"Tkinter failed to initialise: {exc}") from exc
     server_thread = threading.Thread(
         target=server.serve_forever,
         args=(http_server,),
@@ -287,6 +366,11 @@ def start_gui(http_server):
 
 
 def main() -> None:
+    gui_ok, reason = _gui_available()
+    if not gui_ok:
+        _launch_cli(reason or "GUI not available")
+        return
+
     app_lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     with suppress(OSError):
         app_lock_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -296,12 +380,15 @@ def main() -> None:
         app_lock_socket.listen(1)
     except OSError as err:
         logger.info("Mizban appears to be running already: %s", err)
-        _show_dialog("Mizban", "Mizban is already running.\n\nPlease check your system tray.")
+        _show_dialog(
+            "Mizban", "Mizban is already running.\n\nPlease check your system tray."
+        )
         with suppress(Exception):
             app_lock_socket.close()
         sys.exit(0)
 
     http_server = None
+    fallback_reason: str | None = None
     try:
         http_server = server.create_server()
     except OSError as exc:
@@ -316,6 +403,9 @@ def main() -> None:
 
     try:
         start_gui(http_server)
+    except RuntimeError as exc:  # pragma: no cover - environment specific
+        logger.warning("GUI unavailable: %s", exc)
+        fallback_reason = str(exc)
     except Exception as exc:  # pragma: no cover - defensive
         logger.exception("Unexpected Mizban GUI failure: %s", exc)
         _show_dialog("Mizban", f"Unexpected error: {exc}", kind="error")
@@ -328,6 +418,9 @@ def main() -> None:
                 http_server.server_close()
         with suppress(Exception):
             app_lock_socket.close()
+
+    if fallback_reason:
+        _launch_cli(fallback_reason)
 
 
 if __name__ == "__main__":

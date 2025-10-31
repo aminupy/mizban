@@ -1,9 +1,10 @@
 import io
+import logging
 import os
 import socket
-from pathlib import Path
-import logging
 import sys
+from pathlib import Path
+from typing import TextIO
 
 try:
     from PIL import Image
@@ -52,7 +53,21 @@ def get_server_url(port: int) -> str:
     return f"http://{ip}:{port}/"
 
 
-    
+def stream_supports_unicode(stream: TextIO | None) -> bool:
+    """Return True when the stream's encoding can display Unicode glyphs."""
+    if stream is None:
+        return True
+    encoding = getattr(stream, "encoding", None)
+    if not encoding:
+        return True
+    try:
+        "🚀📂🌐📱".encode(encoding, errors="strict")
+    except UnicodeEncodeError:
+        return False
+    except Exception:
+        return False
+    return True
+
 
 
 def generate_thumbnail(src_path: Path, dest_path: Path) -> None:

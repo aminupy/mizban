@@ -5,7 +5,8 @@ import sys
 # User-specific configuration paths remain the same
 DEFAULT_CONFIG = {
     "mizban_shared_dir": str(Path.home() / "Desktop" / "MizbanShared"),
-    "port": 8000
+    # Default to an unprivileged port to avoid admin/root requirements.
+    "port": 8000,
 }
 
 CONFIG_DIR = Path.home() / ".config" / "Mizban"

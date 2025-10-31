@@ -1,7 +1,9 @@
 import functools
+import io
 import json
 import logging
 import mimetypes
+import os
 import shutil
 import urllib.parse
 import cgi
@@ -14,12 +16,11 @@ from .utils import generate_thumbnail
 
 logger = logging.getLogger("mizban")
 
-
 MAX_UPLOAD_BYTES = 4 * 1024 * 1024 * 1024  # 4 GiB
 MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + (10 * 1024 * 1024)  # allow some multipart overhead
-UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1 MiB
+UPLOAD_CHUNK_SIZE = 4 * 1024 * 1024  # 4 MiB for faster streaming
 MAX_HEADER_LINE = 16 * 1024
-DOWNLOAD_CHUNK_SIZE = 1024 * 1024  # 1 MiB
+DOWNLOAD_CHUNK_SIZE = 4 * 1024 * 1024  # 4 MiB download chunks
 
 
 class UploadError(Exception):
@@ -176,7 +177,41 @@ class MizbanHandler(SimpleHTTPRequestHandler):
             return
         try:
             with path.open("rb") as src:
-                shutil.copyfileobj(src, self.wfile, length=DOWNLOAD_CHUNK_SIZE)
+                src_fd = src.fileno()
+                out_fd = self.connection.fileno() if hasattr(self, "connection") else -1
+                use_sendfile = (
+                    out_fd is not None
+                    and out_fd >= 0
+                    and hasattr(os, "sendfile")
+                )
+
+                if use_sendfile:
+                    try:
+                        remaining = path.stat().st_size
+                    except OSError:
+                        remaining = None
+                    if remaining is not None:
+                        offset = 0
+                        while remaining > 0:
+                            try:
+                                sent = os.sendfile(out_fd, src_fd, offset, remaining)
+                            except BlockingIOError:
+                                sent = 0
+                            except OSError as send_err:
+                                logger.debug("sendfile failed for %s: %s", path, send_err)
+                                sent = 0
+                            if sent == 0:
+                                break
+                            if sent is None:
+                                sent = remaining
+                            offset += sent
+                            remaining -= sent
+                        if remaining <= 0:
+                            return
+                        src.seek(offset, os.SEEK_SET)
+
+                buffered_src = io.BufferedReader(src, buffer_size=DOWNLOAD_CHUNK_SIZE)
+                shutil.copyfileobj(buffered_src, self.wfile, length=DOWNLOAD_CHUNK_SIZE)
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             logger.info("Client disconnected while downloading %s", path.name)
         except Exception as exc:
@@ -290,10 +325,12 @@ class MizbanHandler(SimpleHTTPRequestHandler):
 
         bytes_written = 0
         buffer = bytearray()
+        buffer_start = 0
+        upload_complete = False
         try:
             dest_path.parent.mkdir(parents=True, exist_ok=True)
-            with dest_path.open("wb") as dst:
-                while True:
+            with dest_path.open("wb", buffering=8 * 1024 * 1024) as dst:
+                while not upload_complete:
                     if remaining <= 0:
                         raise UploadError(HTTPStatus.BAD_REQUEST, "Unexpected end of upload stream.")
 
@@ -303,28 +340,42 @@ class MizbanHandler(SimpleHTTPRequestHandler):
                     remaining -= len(chunk)
                     buffer.extend(chunk)
 
-                    marker_index, marker_length = self._find_closing_marker(buffer, closing_marker_with_crlf, closing_marker)
-                    if marker_index == -1:
-                        flush_len = len(buffer) - guard
-                        if flush_len > 0:
-                            dst.write(buffer[:flush_len])
-                            bytes_written += flush_len
+                    search_pos = max(buffer_start, len(buffer) - len(chunk) - len(closing_marker_with_crlf))
+
+                    while True:
+                        marker_index, marker_length = self._find_closing_marker(
+                            buffer, closing_marker_with_crlf, closing_marker, search_pos
+                        )
+                        if marker_index == -1:
+                            flush_upto = len(buffer) - guard
+                            if flush_upto > buffer_start:
+                                write_len = flush_upto - buffer_start
+                                dst.write(memoryview(buffer)[buffer_start:buffer_start + write_len])
+                                bytes_written += write_len
+                                self._enforce_upload_limit(bytes_written)
+                                buffer_start += write_len
+                            break
+
+                        if marker_index > buffer_start:
+                            dst.write(memoryview(buffer)[buffer_start:marker_index])
+                            bytes_written += marker_index - buffer_start
                             self._enforce_upload_limit(bytes_written)
-                            del buffer[:flush_len]
-                        continue
 
-                    data = buffer[:marker_index]
-                    if data:
-                        dst.write(data)
-                        bytes_written += len(data)
-                        self._enforce_upload_limit(bytes_written)
+                        buffer_start = marker_index + marker_length
+                        if buffer[buffer_start:buffer_start + 2] == b"\r\n":
+                            buffer_start += 2
+                        upload_complete = True
+                        break
 
-                    del buffer[:marker_index + marker_length]
-                    if buffer.startswith(b"\r\n"):
-                        del buffer[:2]
-                    break
+                    if buffer_start and buffer_start >= len(buffer):
+                        buffer.clear()
+                        buffer_start = 0
+                    elif buffer_start and buffer_start > len(buffer) // 2:
+                        del buffer[:buffer_start]
+                        buffer_start = 0
 
-            if buffer.strip(b"\r\n\t "):
+            trailer = bytes(buffer[buffer_start:]).strip(b"\r\n\t ")
+            if trailer:
                 raise UploadError(HTTPStatus.BAD_REQUEST, "Unexpected multipart trailer.")
         except Exception:
             with suppress(FileNotFoundError):
@@ -339,11 +390,12 @@ class MizbanHandler(SimpleHTTPRequestHandler):
         buffer: bytearray,
         marker_with_crlf: bytes,
         marker_without_crlf: bytes,
+        start: int = 0,
     ) -> tuple[int, int]:
-        idx = buffer.find(marker_with_crlf)
+        idx = buffer.find(marker_with_crlf, start)
         if idx != -1:
             return idx, len(marker_with_crlf)
-        idx = buffer.find(marker_without_crlf)
+        idx = buffer.find(marker_without_crlf, start)
         if idx != -1:
             return idx, len(marker_without_crlf)
         return -1, 0
