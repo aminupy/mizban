@@ -34,7 +34,7 @@
 ### Windows
 
 1. Download the installer from the  
-   👉 [Latest Releases](https://github.com/aminupy/mizban/releases)
+   👉 [Latest Releases](https://github.com/aminupy/mizban/releases/latest)
 2. Run the installer and follow the steps.
 
 > **Note**: On first launch, allow Mizban through the Windows Firewall so it can access your local network.
@@ -43,10 +43,7 @@
 
 ### Linux
 
-Mizban CLI can be installed using the official install script.
-
-#### Quick install
-
+Mizban CLI can be installed using the official install script:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/aminupy/mizban/main/install.sh | sh
 ````
