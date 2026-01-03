@@ -12,9 +12,9 @@ BIN_DIR="$HOME/.local/bin"
 APP_DIR="$HOME/.local/share/applications"
 HICOLOR_DIR="$HOME/.local/share/icons/hicolor/256x256/apps"
 
-BIN_PATH="$BIN_DIR/mizban-cli"
-ICON_PATH="$HICOLOR_DIR/mizban-cli.png"
-DESKTOP_PATH="$APP_DIR/mizban-cli.desktop"
+BIN_PATH="$BIN_DIR/mizban"
+ICON_PATH="$HICOLOR_DIR/mizban.png"
+DESKTOP_PATH="$APP_DIR/mizban.desktop"
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -115,7 +115,7 @@ Name=Mizban CLI
 Comment=Share files on your LAN (CLI)
 Exec=$BIN_PATH
 Terminal=true
-Icon=mizban-cli
+Icon=mizban
 Categories=Utility;Network;
 EOF
 
