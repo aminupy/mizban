@@ -8,6 +8,20 @@
   </em>
 </p>
 
+<p align="center">
+  <a href="https://github.com/aminupy/mizban/actions/workflows/release.yml"><img alt="Release Workflow" src="https://github.com/aminupy/mizban/actions/workflows/release.yml/badge.svg"></a>
+  <a href="https://github.com/aminupy/mizban/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/aminupy/mizban?sort=semver"></a>
+  <a href="https://github.com/aminupy/mizban/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/aminupy/mizban/total"></a>
+  <a href="https://github.com/aminupy/mizban/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/aminupy/mizban?style=social"></a>
+</p>
+
+<p align="center">
+  <a href="https://img.shields.io/github/license/aminupy/mizban"><img alt="License" src="https://img.shields.io/github/license/aminupy/mizban"></a>
+  <a href="https://img.shields.io/github/go-mod/go-version/aminupy/mizban"><img alt="Go Version" src="https://img.shields.io/github/go-mod/go-version/aminupy/mizban"></a>
+  <a href="https://github.com/aminupy/mizban/issues"><img alt="Open Issues" src="https://img.shields.io/github/issues/aminupy/mizban"></a>
+  <a href="https://github.com/aminupy/mizban/pulls"><img alt="Open PRs" src="https://img.shields.io/github/issues-pr/aminupy/mizban"></a>
+</p>
+
 ---
 
 ## Features
@@ -175,6 +189,23 @@ Contributions are welcome.
 
 Bug reports and feature requests:
 👉 [https://github.com/aminupy/mizban/issues](https://github.com/aminupy/mizban/issues)
+
+Read contribution and support guides:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [SECURITY.md](SECURITY.md)
+
+---
+
+## Support Mizban
+
+If Mizban helps you, the highest-impact support is:
+
+- Star the repository
+- Share it with friends/teams who need LAN file sharing
+- Open issues for bugs and feature requests
+- Submit pull requests for fixes and improvements
 
 ---
 

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability Report
+    url: https://github.com/aminupy/mizban/security/advisories/new
+    about: Report security issues privately.
+  - name: Support and Usage Questions
+    url: https://github.com/aminupy/mizban/blob/main/SUPPORT.md
+    about: Read support guidance and troubleshooting notes.

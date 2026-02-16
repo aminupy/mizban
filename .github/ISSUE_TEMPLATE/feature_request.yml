@@ -1,0 +1,29 @@
+name: Feature Request
+description: Suggest an improvement
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What pain point are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe the behavior you want.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Mockups, examples, or constraints.
