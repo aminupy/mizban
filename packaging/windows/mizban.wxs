@@ -10,6 +10,8 @@
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of Mizban is already installed." />
     <MediaTemplate EmbedCab="yes" />
+    <Icon Id="MizbanIcon" SourceFile="$(var.IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="MizbanIcon" />
 
     <StandardDirectory Id="LocalAppDataFolder">
       <Directory Id="INSTALLFOLDER" Name="Mizban" />

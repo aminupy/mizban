@@ -8,6 +8,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PAYLOAD_DIR="$ROOT_DIR/dist/windows-$ARCH"
 OUTPUT_DIR="$ROOT_DIR/dist/packages"
 WXS_FILE="$ROOT_DIR/packaging/windows/mizban.wxs"
+ICON_FILE="$ROOT_DIR/web/favicon.ico"
 
 if ! command -v wix >/dev/null 2>&1; then
   echo "WiX v4 CLI is required (https://wixtoolset.org)." >&2
@@ -17,6 +18,11 @@ fi
 if [[ ! -f "$PAYLOAD_DIR/mizban.exe" ]]; then
   echo "Missing payload binary: $PAYLOAD_DIR/mizban.exe" >&2
   echo "Run: make build" >&2
+  exit 1
+fi
+
+if [[ ! -f "$ICON_FILE" ]]; then
+  echo "Missing installer icon: $ICON_FILE" >&2
   exit 1
 fi
 
@@ -36,6 +42,7 @@ wix build \
   -arch "$WIX_ARCH" \
   -dVersion="$VERSION" \
   -dPayloadDir="$PAYLOAD_DIR" \
+  -dIconFile="$ICON_FILE" \
   "$WXS_FILE" \
   -o "$OUT_FILE"
 

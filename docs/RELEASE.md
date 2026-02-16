@@ -10,6 +10,8 @@ This checklist prepares a clean Go-only Mizban release.
   - `go test ./...`
 - Verify integration smoke test against local server:
   - `./scripts/integration_smoke.sh http://127.0.0.1:8000`
+- Prepare release markdown body used by workflow:
+  - `docs/release-notes/v<x.y.z>.md`
 
 ## 2) Build portable artifacts
 
@@ -53,9 +55,10 @@ Run on environments with required tools installed.
 
 ## 5) Publish
 
-- Create git tag: `v<x.y.z>`.
-- Create GitHub release.
-- Upload all archives, installers, and `SHA256SUMS.txt`.
+- Ensure `docs/release-notes/v<x.y.z>.md` is committed and pushed.
+- Create and push git tag: `v<x.y.z>`.
+- Wait for `Release` workflow to finish.
+- Workflow automatically creates GitHub release and uploads all assets.
 - Verify `install.sh` can install from latest release on Linux.
 
 ## 6) Test Workflow Without Publishing
@@ -69,6 +72,7 @@ Use the GitHub Actions manual trigger:
 What this does:
 
 - Builds Linux + Windows binaries.
+- Builds Windows `.msi` installers.
 - Builds Linux `.deb`.
 - Builds macOS `.pkg` + `.dmg`.
 - Builds portable `.tar.gz` bundles for Linux, Windows, and macOS (binary + `web` assets).
