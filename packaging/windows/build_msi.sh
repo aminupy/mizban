@@ -66,12 +66,13 @@ while IFS= read -r -d '' file; do
 
   source_attr="$(escape_xml "!(bindpath.payload)\\$rel_win")"
   component_id="$(printf 'MizbanFile%06d' "$component_idx")"
-  printf '      <Component Id="%s">\n' "$component_id" >> "$PAYLOAD_XML"
   if [[ "$dir" == "." ]]; then
+    printf '      <Component Id="%s">\n' "$component_id" >> "$PAYLOAD_XML"
     printf '        <File Source="%s" />\n' "$source_attr" >> "$PAYLOAD_XML"
   else
     subdir_attr="$(escape_xml "$dir_win")"
-    printf '        <File Source="%s" Subdirectory="%s" />\n' "$source_attr" "$subdir_attr" >> "$PAYLOAD_XML"
+    printf '      <Component Id="%s" Subdirectory="%s">\n' "$component_id" "$subdir_attr" >> "$PAYLOAD_XML"
+    printf '        <File Source="%s" />\n' "$source_attr" >> "$PAYLOAD_XML"
   fi
   printf '      </Component>\n' >> "$PAYLOAD_XML"
 done < <(find "$PAYLOAD_DIR" -type f -print0 | sort -z)
