@@ -243,7 +243,7 @@ jobs:
       artifact_name: ${{ steps.bundle.outputs.artifact_name }}
     steps:
       - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: _artifacts
 
@@ -297,7 +297,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download release bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ needs.bundle_assets.outputs.artifact_name }}
           path: release-assets
