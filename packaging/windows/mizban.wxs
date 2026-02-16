@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="Mizban"
+      Manufacturer="Mizban"
+      Language="1033"
+      Version="$(var.Version)"
+      UpgradeCode="428E76A3-9D56-4C88-9DA0-BA51F5EA8B45"
+      Scope="perUser">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Mizban is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="INSTALLFOLDER" Name="Mizban" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="Mizban" Level="1">
+      <ComponentGroupRef Id="PayloadComponents" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="PayloadComponents" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PayloadDir)\**" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>

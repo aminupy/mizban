@@ -1,0 +1,37 @@
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.iml
+
+# Local environments
+.env
+.env.*
+.venv/
+venv/
+
+# Go build artifacts
+bin/
+build/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+coverage.out
+
+# Frontend tooling
+node_modules/
+web/node_modules/
+
+# Temporary files
+*.log
+*.tmp
+*.swp
