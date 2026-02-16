@@ -1,0 +1,64 @@
+name: Windows MSI Debug
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version label for MSI debug build (for example: 3.0.0-dev)"
+        required: true
+        default: "3.0.0-dev"
+
+permissions:
+  contents: read
+
+jobs:
+  build_windows_msi:
+    name: Build Windows MSI Only
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup WiX v4 CLI
+        shell: pwsh
+        run: |
+          dotnet tool update --global wix --version 4.* 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            dotnet tool install --global wix --version 4.*
+          }
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build Windows payload binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
+          for arch in amd64 arm64; do
+            out_dir="dist/windows-${arch}"
+            mkdir -p "${out_dir}"
+            GOOS="windows" GOARCH="${arch}" CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags "-s -w -X main.version=${VERSION}" -o "${out_dir}/mizban.exe" ./cmd/mizban
+            rm -rf "${out_dir}/web"
+            cp -R web "${out_dir}/web"
+          done
+
+      - name: Build MSI packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
+          for arch in amd64 arm64; do
+            ./packaging/windows/build_msi.sh "${VERSION}" "${arch}"
+          done
+
+      - name: Upload MSI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi-debug-${{ github.event.inputs.version }}
+          path: dist/packages/*.msi
+          if-no-files-found: error
+
