@@ -1,0 +1,208 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version label for dry-run artifacts (for example: 2.1.0-rc1)'
+        required: true
+        default: '0.0.0-dev'
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: Prepare Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      is_release: ${{ steps.meta.outputs.is_release }}
+    steps:
+      - name: Resolve version and mode
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+            IS_RELEASE="true"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+            VERSION="${VERSION#v}"
+            TAG="v${VERSION}"
+            IS_RELEASE="false"
+          fi
+
+          if [[ -z "${VERSION}" ]]; then
+            echo "Version cannot be empty." >&2
+            exit 1
+          fi
+
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "is_release=${IS_RELEASE}" >> "${GITHUB_OUTPUT}"
+
+          echo "Mode: ${IS_RELEASE}"
+          echo "Version: ${VERSION}"
+          echo "Tag: ${TAG}"
+
+  build_linux_windows:
+    name: Build Linux + Windows Assets
+    runs-on: ubuntu-latest
+    needs: prepare
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.prepare.outputs.version }}"
+          make VERSION="${VERSION}" build PLATFORMS="linux/amd64 linux/arm64 windows/amd64 windows/arm64"
+
+      - name: Build DEB packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.prepare.outputs.version }}"
+          make VERSION="${VERSION}" package-linux ARCHES="amd64 arm64"
+
+      - name: Collect Linux + Windows assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.prepare.outputs.version }}"
+          mkdir -p out
+
+          cp dist/linux-amd64/mizban "out/mizban-${VERSION}-linux-amd64"
+          cp dist/linux-arm64/mizban "out/mizban-${VERSION}-linux-arm64"
+
+          cp dist/windows-amd64/mizban.exe "out/mizban-${VERSION}-windows-amd64.exe"
+          cp dist/windows-arm64/mizban.exe "out/mizban-${VERSION}-windows-arm64.exe"
+
+          cp dist/packages/*.deb out/
+
+      - name: Upload Linux + Windows assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-windows-assets
+          path: out/*
+          if-no-files-found: error
+
+  build_macos:
+    name: Build macOS Assets
+    runs-on: macos-latest
+    needs: prepare
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build macOS binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.prepare.outputs.version }}"
+          make VERSION="${VERSION}" build PLATFORMS="darwin/amd64 darwin/arm64"
+
+      - name: Build PKG + DMG packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.prepare.outputs.version }}"
+          make VERSION="${VERSION}" package-macos ARCHES="amd64 arm64"
+
+      - name: Collect macOS assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          cp dist/packages/*.dmg out/
+          cp dist/packages/*.pkg out/
+
+      - name: Upload macOS assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-assets
+          path: out/*
+          if-no-files-found: error
+
+  bundle_assets:
+    name: Bundle Release Assets
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - build_linux_windows
+      - build_macos
+    outputs:
+      artifact_name: ${{ steps.bundle.outputs.artifact_name }}
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: _artifacts
+
+      - name: Assemble release bundle and checksums
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.prepare.outputs.version }}"
+          OUT="release-assets"
+
+          mkdir -p "${OUT}"
+          find _artifacts -type f -maxdepth 3 -exec cp {} "${OUT}" \;
+
+          (
+            cd "${OUT}"
+            sha256sum * > SHA256SUMS.txt
+          )
+
+          ARTIFACT_NAME="release-assets-${VERSION}"
+          echo "artifact_name=${ARTIFACT_NAME}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload assembled assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.bundle.outputs.artifact_name }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  publish_release:
+    name: Publish GitHub Release
+    if: needs.prepare.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - bundle_assets
+    steps:
+      - name: Download release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.bundle_assets.outputs.artifact_name }}
+          path: release-assets
+
+      - name: Create GitHub release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: Mizban ${{ needs.prepare.outputs.tag }}
+          files: release-assets/*
+          generate_release_notes: true

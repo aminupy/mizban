@@ -57,3 +57,23 @@ Run on environments with required tools installed.
 - Create GitHub release.
 - Upload all archives, installers, and `SHA256SUMS.txt`.
 - Verify `install.sh` can install from latest release on Linux.
+
+## 6) Test Workflow Without Publishing
+
+Use the GitHub Actions manual trigger:
+
+- Open `Actions` -> `Release` workflow -> `Run workflow`.
+- Set `version` to a test value (example: `2.1.0-rc1`).
+- Run it on your branch.
+
+What this does:
+
+- Builds Linux + Windows binaries.
+- Builds Linux `.deb`.
+- Builds macOS `.pkg` + `.dmg`.
+- Generates `SHA256SUMS.txt`.
+- Uploads a workflow artifact named `release-assets-<version>`.
+
+What it does not do in manual mode:
+
+- It does **not** create a GitHub Release.
