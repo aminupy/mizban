@@ -24,6 +24,15 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Prepare Windows icon resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          go install github.com/akavel/rsrc@latest
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+          export PATH="$(go env GOPATH)/bin:${PATH}"
+          ./packaging/windows/generate_icon_syso.sh
+
       - name: Setup WiX v4 CLI
         shell: pwsh
         run: |
@@ -42,8 +51,6 @@ jobs:
             out_dir="dist/windows-${arch}"
             mkdir -p "${out_dir}"
             GOOS="windows" GOARCH="${arch}" CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags "-s -w -X main.version=${VERSION}" -o "${out_dir}/mizban.exe" ./cmd/mizban
-            rm -rf "${out_dir}/web"
-            cp -R web "${out_dir}/web"
           done
 
       - name: Build MSI packages
@@ -61,4 +68,3 @@ jobs:
           name: windows-msi-debug-${{ github.event.inputs.version }}
           path: dist/packages/*.msi
           if-no-files-found: error
-

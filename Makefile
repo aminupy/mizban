@@ -14,6 +14,13 @@ PLATFORMS := windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 linux/amd64 l
 
 build:
 	@set -euo pipefail; \
+	if [[ " $(PLATFORMS) " == *" windows/"* ]]; then \
+		if command -v rsrc >/dev/null 2>&1; then \
+			./packaging/windows/generate_icon_syso.sh; \
+		else \
+			echo "warning: rsrc not found; Windows .exe icon resource will be skipped."; \
+		fi; \
+	fi; \
 	for platform in $(PLATFORMS); do \
 		os=$${platform%/*}; \
 		arch=$${platform#*/}; \

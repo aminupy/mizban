@@ -9,10 +9,16 @@ PAYLOAD_DIR="$ROOT_DIR/dist/windows-$ARCH"
 OUTPUT_DIR="$ROOT_DIR/dist/packages"
 WXS_TEMPLATE="$ROOT_DIR/packaging/windows/mizban.wxs"
 ICON_FILE="$ROOT_DIR/web/favicon.ico"
+WIX_UI_EXT="WixToolset.UI.wixext"
 
 if ! command -v wix >/dev/null 2>&1; then
   echo "WiX v4 CLI is required (https://wixtoolset.org)." >&2
   exit 1
+fi
+
+if ! wix extension list -g "$WIX_UI_EXT" >/dev/null 2>&1; then
+  echo "Installing WiX UI extension: $WIX_UI_EXT"
+  wix extension add -g "$WIX_UI_EXT"
 fi
 
 if [[ ! -f "$PAYLOAD_DIR/mizban.exe" ]]; then
@@ -75,7 +81,10 @@ while IFS= read -r -d '' file; do
     printf '        <File Source="%s" />\n' "$source_attr" >> "$PAYLOAD_XML"
   fi
   printf '      </Component>\n' >> "$PAYLOAD_XML"
-done < <(find "$PAYLOAD_DIR" -type f -print0 | sort -z)
+done < <(
+  # MSI payload intentionally excludes the external web folder because the binary embeds fallback assets.
+  find "$PAYLOAD_DIR" -type f ! -path "$PAYLOAD_DIR/web/*" -print0 | sort -z
+)
 
 if [[ ! -s "$PAYLOAD_XML" ]]; then
   echo "No payload files found in: $PAYLOAD_DIR" >&2
@@ -95,6 +104,7 @@ awk -v payload="$PAYLOAD_XML" '
 
 wix build \
   -arch "$WIX_ARCH" \
+  -ext "$WIX_UI_EXT" \
   -d "Version=$VERSION" \
   -b "payload=$PAYLOAD_DIR" \
   -d "IconFile=$ICON_FILE" \

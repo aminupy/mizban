@@ -26,6 +26,7 @@ dist/
 *.out
 *.prof
 coverage.out
+*.syso
 
 # Frontend tooling
 node_modules/

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package
       Name="Mizban"
       Manufacturer="Mizban"
@@ -10,21 +11,54 @@
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of Mizban is already installed." />
     <MediaTemplate EmbedCab="yes" />
-    <Icon Id="MizbanIcon" SourceFile="$(var.IconFile)" />
-    <Property Id="ARPPRODUCTICON" Value="MizbanIcon" />
+    <Icon Id="Mizban.exe" SourceFile="$(var.IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="Mizban.exe" />
+    <SetProperty Id="ARPINSTALLLOCATION" Value="[INSTALLFOLDER]" After="CostFinalize" />
+    <ui:WixUI Id="WixUI_Minimal" />
 
     <StandardDirectory Id="LocalAppDataFolder">
       <Directory Id="INSTALLFOLDER" Name="Mizban" />
     </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="MizbanProgramMenuFolder" Name="Mizban" />
+    </StandardDirectory>
 
     <Feature Id="MainFeature" Title="Mizban" Level="1">
       <ComponentGroupRef Id="PayloadComponents" />
+      <ComponentGroupRef Id="ShortcutComponents" />
     </Feature>
   </Package>
 
   <Fragment>
     <ComponentGroup Id="PayloadComponents" Directory="INSTALLFOLDER">
       __PAYLOAD_FILES__
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ShortcutComponents">
+      <Component Id="StartMenuShortcutComponent" Directory="MizbanProgramMenuFolder">
+        <Shortcut
+            Id="StartMenuMizbanShortcut"
+            Name="Mizban"
+            Description="Mizban LAN file sharing"
+            Target="[INSTALLFOLDER]mizban.exe"
+            WorkingDirectory="INSTALLFOLDER"
+            Icon="Mizban.exe" />
+        <RemoveFolder Id="RemoveMizbanProgramMenuFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\\Mizban" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Component Id="DesktopShortcutComponent" Directory="DesktopFolder">
+        <Shortcut
+            Id="DesktopMizbanShortcut"
+            Name="Mizban"
+            Description="Mizban LAN file sharing"
+            Target="[INSTALLFOLDER]mizban.exe"
+            WorkingDirectory="INSTALLFOLDER"
+            Icon="Mizban.exe" />
+        <RegistryValue Root="HKCU" Key="Software\\Mizban" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
     </ComponentGroup>
   </Fragment>
 </Wix>

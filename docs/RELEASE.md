@@ -69,6 +69,12 @@ Use the GitHub Actions manual trigger:
 - Set `version` to a test value (example: `2.1.0-rc1`).
 - Run it on your branch.
 
+For fast Windows-installer-only iteration:
+
+- Open `Actions` -> `Windows MSI Debug` workflow -> `Run workflow`.
+- Set `version` and run.
+- Download `windows-msi-debug-<version>` artifact.
+
 What this does:
 
 - Builds Linux + Windows binaries.
