@@ -16,9 +16,19 @@ if ! command -v wix >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! wix extension list -g "$WIX_UI_EXT" >/dev/null 2>&1; then
-  echo "Installing WiX UI extension: $WIX_UI_EXT"
-  wix extension add -g "$WIX_UI_EXT"
+wix_version_raw="$(wix --version 2>/dev/null | tr -d '\r' | head -n 1)"
+wix_version="${wix_version_raw##* }"
+wix_version="${wix_version#v}"
+wix_version="${wix_version%%+*}"
+
+if [[ -z "$wix_version" ]]; then
+  echo "Unable to detect WiX CLI version from: '$wix_version_raw'" >&2
+  exit 1
+fi
+
+if ! wix extension list -g "$WIX_UI_EXT/$wix_version" >/dev/null 2>&1; then
+  echo "Installing WiX UI extension: $WIX_UI_EXT/$wix_version"
+  wix extension add -g "$WIX_UI_EXT/$wix_version"
 fi
 
 if [[ ! -f "$PAYLOAD_DIR/mizban.exe" ]]; then
