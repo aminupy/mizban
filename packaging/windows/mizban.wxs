@@ -24,7 +24,7 @@
 
   <Fragment>
     <ComponentGroup Id="PayloadComponents" Directory="INSTALLFOLDER">
-      <Files Include="$(var.PayloadDir)\**" />
+      __PAYLOAD_FILES__
     </ComponentGroup>
   </Fragment>
 </Wix>
