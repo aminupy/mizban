@@ -189,9 +189,7 @@ func listenWithSocketTuning(addr string) (net.Listener, error) {
 		Control: func(_, _ string, rc syscall.RawConn) error {
 			if err := rc.Control(func(fd uintptr) {
 				// Best-effort tuning: do not fail startup if any option is unsupported.
-				_ = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_RCVBUF, socketBufferSize)
-				_ = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_SNDBUF, socketBufferSize)
-				_ = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_TCP, syscall.TCP_NODELAY, 1)
+				setSocketOptionsBestEffort(fd)
 			}); err != nil {
 				return err
 			}
