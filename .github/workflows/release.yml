@@ -112,7 +112,7 @@ jobs:
           cp dist/packages/*.deb out/
 
       - name: Upload Linux + Windows assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-windows-assets
           path: out/*
@@ -160,7 +160,7 @@ jobs:
           cp dist/packages/*.pkg out/
 
       - name: Upload macOS assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: macos-assets
           path: out/*
@@ -225,7 +225,7 @@ jobs:
           cp dist/packages/*.msi out/
 
       - name: Upload Windows MSI assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-msi-assets
           path: out/*
@@ -279,7 +279,7 @@ jobs:
           echo "artifact_name=${ARTIFACT_NAME}" >> "${GITHUB_OUTPUT}"
 
       - name: Upload assembled assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.bundle.outputs.artifact_name }}
           path: release-assets/*
