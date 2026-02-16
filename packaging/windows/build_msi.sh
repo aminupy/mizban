@@ -40,9 +40,9 @@ OUT_FILE="$OUTPUT_DIR/mizban-${VERSION}-windows-${ARCH}.msi"
 
 wix build \
   -arch "$WIX_ARCH" \
-  -dVersion="$VERSION" \
-  -dPayloadDir="$PAYLOAD_DIR" \
-  -dIconFile="$ICON_FILE" \
+  -d "Version=$VERSION" \
+  -d "PayloadDir=$PAYLOAD_DIR" \
+  -d "IconFile=$ICON_FILE" \
   "$WXS_FILE" \
   -o "$OUT_FILE"
 
