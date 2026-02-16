@@ -1,191 +1,184 @@
-# Mizban (Go Rewrite)
+<div align="center">
+  <img src="web/icons/readme_logo.svg" alt="Mizban">
+</div>
 
-Mizban is a LAN file sharing utility. The Go rewrite preserves the existing UX/API contracts while adding high-throughput parallel transfers and a localhost-only admin page.
+<p align="center">
+  <em>
+    Mizban is a lightweight, LAN-based file sharing tool that lets you share files between devices on the same network.
+  </em>
+</p>
 
-## Runtime Model
+---
 
-- Single binary: `mizban`
-- One HTTP server on LAN (`0.0.0.0:<port>`)
-- Client UI at `/` (LAN)
-- Admin UI at `/settings` and `/info` (localhost only)
-- Startup prints client URL and terminal QR code
+## Features
 
-## Preserved Compatibility
+- **Single binary runtime** on Windows, macOS, and Linux
+- **LAN client UI** at `/` for upload/download and file browsing
+- **Local admin UI** at `/settings` (localhost-only) for configuration
+- **High-throughput transfers** with parallel chunked upload/download
+- **QR code startup access** for fast mobile/desktop connection
+- **Config compatibility preserved** (`~/.config/Mizban/config.json`)
 
-- Shared folder default: `~/Desktop/MizbanShared`
-- Config path: `~/.config/Mizban/config.json`
-- Thumbnail cache: `~/.cache/Mizban/.thumbnails`
-- Existing client routes:
-  - `GET /files/`
-  - `POST /upload/` (legacy multipart)
-  - `GET|HEAD /download/<filename>`
-  - `GET /thumbnails/<filename>`
+---
 
-## Throughput Features
+## Screenshots
 
-- HTTP Range downloads (`Accept-Ranges`, `206`, `Content-Range`)
-- Parallel range downloads in frontend (default `8`)
-- Parallel chunked uploads:
-  - `POST /upload/chunked/init`
-  - `PUT /upload/chunked/chunk`
-  - `POST /upload/chunked/complete`
-  - `POST /upload/chunked/abort`
-- Streaming and bounded buffering only (no full-file RAM buffering)
-- Atomic upload finalize (temp file + rename)
+<div align="center">
+  <img src="web/imgs/terminal.webp" alt="Terminal" height="300"/>
+  <img src="web/imgs/mobile-ui.webp" alt="Mobile UI" height="300"/>
+  <img src="web/imgs/web-ui.png" alt="Web UI" height="300"/>
+</div>
 
-## Admin APIs (localhost only)
+---
 
-- `GET /api/admin/settings`
-- `PUT /api/admin/settings`
-- `GET /api/admin/qr.png`
-- `POST /api/admin/restart`
+## Installation
 
-`PUT /api/admin/settings` fields:
+### Windows
 
-- `mizban_shared_dir` (string)
-- `port` (1-65535; restart required)
-- `parallel_chunks` (1-64)
-- `chunk_size_bytes` (262144-67108864)
-- `max_file_size_bytes` (1-107374182400)
+1. Download the latest `msi` from  
+   👉 [Latest Releases](https://github.com/aminupy/mizban/releases/latest)
+2. Run the installer and follow setup.
 
-Client transfer settings route stays at:
+> **Note**: On first launch, allow Mizban through Windows Firewall so LAN devices can connect.
 
-- `GET /settings/`
+---
+
+### macOS
+
+1. Download `dmg` (or `pkg`) from  
+   👉 [Latest Releases](https://github.com/aminupy/mizban/releases/latest)
+2. Install and run `mizban`.
+
+---
+
+### Linux
+
+#### Option A: install from latest release (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aminupy/mizban/main/install.sh | sh
+```
+
+#### Option B: install `.deb`
+
+Download and install the correct architecture package from Releases:
+
+```bash
+sudo dpkg -i mizban-<version>-linux-<arch>.deb
+```
+
+After installation, run:
+
+```bash
+mizban
+```
+
+> **Note**: Ensure `~/.local/bin` is in `PATH` if you used the install script.
+
+---
+
+## Usage
+
+1. Start Mizban: `mizban`
+2. `MizbanShared` is created on Desktop by default.
+3. Terminal prints the LAN URL and QR code.
+4. Open the LAN URL on any device in the same network.
+5. Use `/settings` on the host machine (`127.0.0.1`) to change config.
+6. If port changes, click **Restart Now** from settings.
+
+> Mizban runs only on local network. No cloud account, no internet service dependency.
+
+---
 
 ## Configuration
 
-Config file: `~/.config/Mizban/config.json`
+Default config file:
 
-Compatible keys:
+```text
+~/.config/Mizban/config.json
+```
+
+Common fields:
 
 ```json
 {
   "mizban_shared_dir": "/home/user/Desktop/MizbanShared",
-  "port": 8000
+  "port": 8000,
+  "parallel_chunks": 8,
+  "chunk_size_bytes": 4194304,
+  "max_file_size_bytes": 107374182400
 }
 ```
 
-Optional performance keys:
-
-- `parallel_chunks` (default `8`)
-- `chunk_size_bytes` (default `4194304`)
-- `max_file_size_bytes` (default `107374182400`)
-
-## Run
-
-```bash
-go run ./cmd/mizban
-```
-
-Optional explicit web assets path:
-
-```bash
-go run ./cmd/mizban --web-dir ./web
-```
+---
 
 ## Build
 
-Cross-platform binaries (`linux/darwin/windows`, `amd64/arm64`):
+Build all platform binaries (`linux/darwin/windows`, `amd64/arm64`):
 
 ```bash
 make build
 ```
 
-Local build:
+Create portable archives + checksums:
 
 ```bash
-make build-local
+make VERSION=<x.y.z> release
 ```
 
-Binary-size flags enabled by default:
-
-- `-trimpath`
-- `-buildvcs=false`
-- `-ldflags "-s -w"`
-
-Optional UPX compression:
+Build native installers (on matching OS/toolchain):
 
 ```bash
-make upx
+make VERSION=<x.y.z> package
 ```
 
-## Release Artifacts
+---
 
-Create portable archives for all platforms and generate checksums:
+## CI Release Workflow
 
-```bash
-make release
-```
+GitHub Actions workflow: `.github/workflows/release.yml`
 
-This produces:
+- Push tag `v<x.y.z>`:
+  - builds binaries/installers
+  - publishes GitHub Release with assets
+- Manual run (`workflow_dispatch`):
+  - builds everything
+  - uploads artifacts
+  - **does not publish release**
 
-- `dist/packages/mizban-<version>-linux-<arch>.tar.gz`
-- `dist/packages/mizban-<version>-macos-<arch>.tar.gz`
-- `dist/packages/mizban-<version>-windows-<arch>.tar.gz`
-- `dist/packages/SHA256SUMS.txt`
+For full release checklist:
 
-Installers (run on platform with required toolchain):
+- `docs/RELEASE.md`
 
-```bash
-make package
-```
-
-Platform scripts:
-
-- `packaging/windows/build_msi.sh` (WiX)
-- `packaging/macos/build_pkg.sh` + `packaging/macos/build_dmg.sh`
-- `packaging/linux/build_deb.sh`
-
-Detailed release checklist: `docs/RELEASE.md`
-
-## Linux One-Command Install (from GitHub release)
-
-```bash
-./install.sh
-```
-
-Installs into user scope:
-
-- binary wrapper: `~/.local/bin/mizban`
-- runtime payload: `~/.local/lib/mizban`
-
-## Tests
-
-Unit tests:
-
-```bash
-go test ./...
-```
-
-Integration smoke test against a running server:
-
-```bash
-./scripts/integration_smoke.sh http://127.0.0.1:8000
-```
-
-Throughput plan: `docs/THROUGHPUT_TEST_PLAN.md`
-
-## Repository Layout
-
-- `cmd/mizban` - entrypoint
-- `internal/config` - config compatibility and defaults
-- `internal/server` - HTTP routes, admin APIs, transfer logic
-- `internal/share` - shared directory lifecycle
-- `internal/thumb` - thumbnail generation
-- `web` - frontend assets served by the binary
-- `packaging` - MSI/PKG/DMG/DEB scripts
+---
 
 ## Troubleshooting
 
 - `web assets not found`
-  - Run from repo root or pass `--web-dir`.
-- Port conflicts
-  - Mizban auto-increments from configured port and persists the new value.
-- Port changed in admin UI but server still on old port
-  - Use `Restart Now` in `/settings` (or `POST /api/admin/restart`).
-- `Restart Now` while using `go run`
-  - Use built binary (`dist/.../mizban`) for most reliable restart behavior.
+  - Run from repo root or pass `--web-dir ./web`.
+- Port changed but server still on old port
+  - Use **Restart Now** in `/settings`.
 - Shared folder update fails
-  - Use an absolute path that exists or can be created on the server machine.
+  - Enter an absolute path on the host machine.
 - Slow transfers
-  - Compare to `iperf3` baseline and tune `parallel_chunks`.
+  - Compare with `iperf3` baseline and tune `parallel_chunks` and `chunk_size_bytes`.
+
+---
+
+## Contributing
+
+Contributions are welcome.
+
+- Fork the repository
+- Create a feature branch
+- Submit a pull request
+
+Bug reports and feature requests:
+👉 [https://github.com/aminupy/mizban/issues](https://github.com/aminupy/mizban/issues)
+
+---
+
+## License
+
+Mizban is released under the **MIT License**.
+See [LICENSE](LICENSE) for details.
