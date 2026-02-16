@@ -71,9 +71,19 @@ What this does:
 - Builds Linux + Windows binaries.
 - Builds Linux `.deb`.
 - Builds macOS `.pkg` + `.dmg`.
+- Builds portable `.tar.gz` bundles for Linux, Windows, and macOS (binary + `web` assets).
 - Generates `SHA256SUMS.txt`.
 - Uploads a workflow artifact named `release-assets-<version>`.
 
 What it does not do in manual mode:
 
 - It does **not** create a GitHub Release.
+
+### Running Downloaded Artifacts
+
+- Prefer portable bundles:
+  - Extract `mizban-<version>-linux-<arch>.tar.gz`
+  - Run `./mizban` inside the extracted folder.
+- If you run a raw binary asset directly (for example `mizban-<version>-linux-amd64`):
+  - pass web assets explicitly:
+    - `./mizban-<version>-linux-amd64 --web-dir ./web`

@@ -87,6 +87,13 @@ jobs:
           VERSION="${{ needs.prepare.outputs.version }}"
           mkdir -p out
 
+          # Portable bundles (binary + web assets) - runnable out of the box.
+          tar -C dist -czf "out/mizban-${VERSION}-linux-amd64.tar.gz" "linux-amd64"
+          tar -C dist -czf "out/mizban-${VERSION}-linux-arm64.tar.gz" "linux-arm64"
+          tar -C dist -czf "out/mizban-${VERSION}-windows-amd64.tar.gz" "windows-amd64"
+          tar -C dist -czf "out/mizban-${VERSION}-windows-arm64.tar.gz" "windows-arm64"
+
+          # Raw binaries (advanced use; require --web-dir or colocated web assets).
           cp dist/linux-amd64/mizban "out/mizban-${VERSION}-linux-amd64"
           cp dist/linux-arm64/mizban "out/mizban-${VERSION}-linux-arm64"
 
@@ -133,7 +140,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          VERSION="${{ needs.prepare.outputs.version }}"
           mkdir -p out
+
+          # Portable bundles (binary + web assets).
+          tar -C dist -czf "out/mizban-${VERSION}-macos-amd64.tar.gz" "darwin-amd64"
+          tar -C dist -czf "out/mizban-${VERSION}-macos-arm64.tar.gz" "darwin-arm64"
+
           cp dist/packages/*.dmg out/
           cp dist/packages/*.pkg out/
 
