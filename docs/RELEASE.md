@@ -84,6 +84,6 @@ What it does not do in manual mode:
 - Prefer portable bundles:
   - Extract `mizban-<version>-linux-<arch>.tar.gz`
   - Run `./mizban` inside the extracted folder.
-- If you run a raw binary asset directly (for example `mizban-<version>-linux-amd64`):
-  - pass web assets explicitly:
-    - `./mizban-<version>-linux-amd64 --web-dir ./web`
+- Raw binary assets can run standalone (embedded frontend fallback is built-in).
+- Optional: if you want to force external assets, pass:
+  - `./mizban-<version>-linux-amd64 --web-dir /path/to/web`

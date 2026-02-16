@@ -5,6 +5,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -13,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	mizban "github.com/aminupy/mizban"
 	"github.com/aminupy/mizban/internal/config"
 	"github.com/aminupy/mizban/internal/server"
 )
@@ -41,11 +44,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	resolvedWebDir, err := resolveWebDir(webDir)
+	resolvedWebDir, cleanupWebDir, err := resolveOrMaterializeWebDir(webDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to locate frontend assets: %v\n", err)
 		os.Exit(1)
 	}
+	defer cleanupWebDir()
 
 	runtimeServer, err := server.New(settings, resolvedWebDir)
 	if err != nil {
@@ -178,4 +182,91 @@ func resolveWebDir(explicit string) (string, error) {
 	}
 
 	return "", fmt.Errorf("web assets not found (checked: %v)", candidates)
+}
+
+func resolveOrMaterializeWebDir(explicit string) (string, func(), error) {
+	diskPath, diskErr := resolveWebDir(explicit)
+	if diskErr == nil {
+		return diskPath, func() {}, nil
+	}
+	if explicit != "" {
+		return "", func() {}, diskErr
+	}
+
+	tempDir, err := materializeEmbeddedWebDir()
+	if err != nil {
+		return "", func() {}, fmt.Errorf("%w; embedded fallback failed: %v", diskErr, err)
+	}
+	return tempDir, func() {
+		_ = os.RemoveAll(tempDir)
+	}, nil
+}
+
+func materializeEmbeddedWebDir() (string, error) {
+	webFS, err := mizban.EmbeddedWebFS()
+	if err != nil {
+		return "", err
+	}
+
+	tempDir, err := os.MkdirTemp("", "mizban-web-")
+	if err != nil {
+		return "", err
+	}
+
+	if err := writeFSToDir(webFS, tempDir); err != nil {
+		_ = os.RemoveAll(tempDir)
+		return "", err
+	}
+
+	if _, err := os.Stat(filepath.Join(tempDir, "index.html")); err != nil {
+		_ = os.RemoveAll(tempDir)
+		return "", fmt.Errorf("embedded index.html missing")
+	}
+
+	return tempDir, nil
+}
+
+func writeFSToDir(src fs.FS, dst string) error {
+	return fs.WalkDir(src, ".", func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if path == "." {
+			return nil
+		}
+
+		targetPath := filepath.Join(dst, filepath.FromSlash(path))
+		if d.IsDir() {
+			return os.MkdirAll(targetPath, 0o755)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+			return err
+		}
+
+		mode := fs.FileMode(0o644)
+		if info, err := d.Info(); err == nil {
+			mode = info.Mode().Perm()
+			if mode == 0 {
+				mode = 0o644
+			}
+		}
+
+		in, err := src.Open(path)
+		if err != nil {
+			return err
+		}
+		defer in.Close()
+
+		out, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
+		if err != nil {
+			return err
+		}
+
+		if _, err := io.Copy(out, in); err != nil {
+			_ = out.Close()
+			return err
+		}
+		return out.Close()
+	})
 }

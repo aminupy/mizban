@@ -181,11 +181,22 @@ jobs:
           OUT="release-assets"
 
           mkdir -p "${OUT}"
-          find _artifacts -type f -maxdepth 3 -exec cp {} "${OUT}" \;
+          # Release bundle contains distributable artifacts only.
+          find _artifacts -type f \
+            \( \
+              -name "mizban-${VERSION}-*.tar.gz" -o \
+              -name "mizban-${VERSION}-*.deb" -o \
+              -name "mizban-${VERSION}-*.dmg" -o \
+              -name "mizban-${VERSION}-*.pkg" -o \
+              -name "mizban-${VERSION}-*.exe" -o \
+              -name "mizban-${VERSION}-linux-amd64" -o \
+              -name "mizban-${VERSION}-linux-arm64" \
+            \) \
+            -exec cp {} "${OUT}" \;
 
           (
             cd "${OUT}"
-            sha256sum * > SHA256SUMS.txt
+            find . -maxdepth 1 -type f ! -name "SHA256SUMS.txt" -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
           )
 
           ARTIFACT_NAME="release-assets-${VERSION}"
