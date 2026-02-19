@@ -3,6 +3,8 @@ const dropZone = document.getElementById('dropZone');
 const uploadButton = document.getElementById('uploadButton');
 const fileListContainer = document.getElementById('fileList');
 const errorContainer = document.getElementById('errorContainer');
+const themeToggle = document.getElementById('themeToggle');
+const themeToggleText = document.getElementById('themeToggleText');
 
 const uploadedFiles = new Set();
 const fileTypes = [
@@ -53,6 +55,68 @@ const transferConfig = {
 };
 
 const MAX_CHUNK_RETRIES = 3;
+const THEME_STORAGE_KEY = 'mizban-theme';
+const LIGHT_THEME = 'light';
+const DARK_THEME = 'dark';
+
+function applyTheme(theme) {
+  const resolvedTheme = theme === DARK_THEME ? DARK_THEME : LIGHT_THEME;
+  document.documentElement.setAttribute('data-theme', resolvedTheme);
+
+  if (!themeToggle) {
+    return;
+  }
+
+  const isDark = resolvedTheme === DARK_THEME;
+  themeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+  if (themeToggleText) {
+    themeToggleText.textContent = isDark ? 'Light mode' : 'Dark mode';
+  }
+}
+
+function resolveInitialTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === LIGHT_THEME || stored === DARK_THEME) {
+      return stored;
+    }
+  } catch (_err) {
+    // ignore storage errors
+  }
+
+  const documentTheme = document.documentElement.getAttribute('data-theme');
+  if (documentTheme === LIGHT_THEME || documentTheme === DARK_THEME) {
+    return documentTheme;
+  }
+
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return DARK_THEME;
+  }
+  return LIGHT_THEME;
+}
+
+function persistTheme(theme) {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch (_err) {
+    // ignore storage errors
+  }
+}
+
+function initTheme() {
+  applyTheme(resolveInitialTheme());
+
+  if (!themeToggle) {
+    return;
+  }
+
+  themeToggle.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') === DARK_THEME ? DARK_THEME : LIGHT_THEME;
+    const nextTheme = currentTheme === DARK_THEME ? LIGHT_THEME : DARK_THEME;
+    applyTheme(nextTheme);
+    persistTheme(nextTheme);
+  });
+}
 
 async function loadTransferSettings() {
   try {
@@ -576,12 +640,10 @@ async function addFileToList(file) {
   const fileDiv = document.createElement('div');
   fileDiv.title = file.name;
   fileDiv.classList.add(
-    'bg-gray-100',
+    'file-card',
     'p-2',
     'rounded-lg',
     'text-center',
-    'text-gray-700',
-    'hover:bg-secondary',
     'hover:cursor-pointer',
     'transition-all',
     'duration-200',
@@ -620,7 +682,7 @@ async function addFileToList(file) {
 
   if (!file.uploaded) {
     progressContainer = document.createElement('div');
-    progressContainer.classList.add('w-full', 'rounded-full', 'overflow-hidden', 'h-2', 'mt-2');
+    progressContainer.classList.add('w-full', 'rounded-full', 'overflow-hidden', 'h-2', 'mt-2', 'upload-progress-track');
     progressBar = document.createElement('div');
     progressBar.classList.add('h-2', 'rounded-full', 'indeterminate-progress', 'transition-all', 'duration-200', 'ease-linear');
     progressContainer.appendChild(progressBar);
@@ -726,6 +788,7 @@ function waitMs(ms) {
 
 // Initialize by fetching transfer settings and existing uploads
 window.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
   await loadTransferSettings();
   await fetchExistingUploads();
 });

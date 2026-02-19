@@ -4,43 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mizban - LAN File Sharing</title>
+    <script>
+      (() => {
+        const key = 'mizban-theme';
+        try {
+          const stored = localStorage.getItem(key);
+          const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const theme = stored === 'dark' || (stored === null && prefersDark) ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (_err) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/output.css">
   </head>
-  
-<body class="bg-[#FAFAFA]">
+
+<body class="app-body">
   <header class="w-full p-6">
     <div class="flex items-center gap-4 container">
-      <img src="icons/server_image.svg" alt="logo" class="w-14">
-      <div class="flex flex-col">
-        <b><h1 class="font-outfit text-2xl">Mizban</h1></b>
-        <p class="font-oswald oswald-light">LAN File Sharing Solution</p>
-
+      <div class="flex items-center gap-4">
+        <img src="icons/server_image.svg" alt="logo" class="w-14">
+        <div class="flex flex-col">
+          <h1 class="font-outfit text-2xl"><b>Mizban</b></h1>
+          <p class="font-oswald oswald-light app-subtitle">LAN File Sharing Solution</p>
+        </div>
       </div>
+      <button id="themeToggle" type="button" class="theme-toggle font-outfit" aria-label="Toggle dark mode" aria-pressed="false">
+        <span id="themeToggleText">Dark mode</span>
+      </button>
     </div>
   </header>
-  
+
   <main>
     <button id="uploadButton" class="container flex justify-center items-center text-white mt-6 py-2 gap-4 rounded-3xl bg-gradient-to-r from-primary to-secondary hover:from-[#24ACD1] hover:to-[#4B5094] transition-all duration-200">
       <img src="icons/upload_icon.png" alt="upload_icon" class="w-10">
       <p class="text-2xl font-oswald">Upload File</p>
-   </button>
-   
-   <section class="w-full  mt-6">
-    <input type="file" id="fileInput" class="hidden w-full" multiple>
-     <div class=" container rounded-lg bg-[#FFFFFF] shadow-lg relative h-[600px] md:h-[450px]">
-       <div id="dropZone" class="hidden h-full w-full justify-center items-center border-2 text-2xl border-dashed border-gray-300 rounded-lg text-center text-gray-400 hover:bg-blue-50 transition-all duration-200 z-20 opacity-90">
-        Drag and drop files here, or click the upload button above.
-       </div>
-   
-       <div id="fileList" class="mt-4 grid grid-cols-2 md:grid-cols-8 gap-4 overflow-y-auto relative z-10 max-h-[570px] md:max-h-[420px] p-2"></div>
-  </section>
-  </div>
+    </button>
+
+    <section class="w-full mt-6">
+      <input type="file" id="fileInput" class="hidden w-full" multiple>
+      <div class="container rounded-lg app-panel relative h-[600px] md:h-[450px]">
+        <div id="dropZone" class="drop-zone hidden h-full w-full justify-center items-center border-2 text-2xl border-dashed rounded-lg text-center transition-all duration-200 z-20 opacity-90">
+          Drag and drop files here, or click the upload button above.
+        </div>
+
+        <div id="fileList" class="mt-1 grid grid-cols-2 md:grid-cols-8 gap-4 overflow-y-auto relative z-10 max-h-[570px] md:max-h-[420px] file-list-pad"></div>
+      </div>
+    </section>
 
     <!-- Error Container -->
-    <div id="errorContainer" class="container bg-gray-100 text-red-500 mt-2"></div>
+    <div id="errorContainer" class="container app-error-container mt-2"></div>
   </main>
-  
+
   <script src="script.js"></script>
 </body>
 </html>
